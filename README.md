@@ -23,7 +23,7 @@ Your progress stays in your browser. On a phone, use *Add to Home Screen* to ope
 
 ## Your data
 
-Everything is stored in your browser (`localStorage`). You can also turn on **Google Drive sync** (below) to keep a copy in your own Drive and pick up on another device. Use **Export backup** under *Skates, spots & styles* to download a JSON file with your log, gear, spots and photos, and **Import backup** to restore it on any device.
+Everything is stored in your browser (`localStorage`). You can also turn on **Google Drive sync** (below) to keep a copy in your own Drive and pick up on another device. Use **Export backup** under *Settings* to download a JSON file with your log, gear, spots and photos, and **Import backup** to restore it on any device.
 
 ## Running it
 
@@ -31,7 +31,7 @@ It's a single static file, `index.html`, with no build step. Open it in a browse
 
 ## Google Drive sync
 
-Under *Skates, spots & styles → Google Drive*, **Connect Google Drive** signs you in with Google and keeps a file called `Skating Mentor data.json` in your Drive. It saves a few seconds after each change. When you connect on another device, the app merges both: every logged session is kept, and the most recently edited skates, spots and styles win. The app uses the `drive.file` permission, which means it can only see the file it creates, not the rest of your Drive.
+Under *Settings → Google Drive*, **Connect Google Drive** signs you in with Google and keeps a file called `Skating Mentor data.json` in your Drive. It saves a few seconds after each change. When you connect on another device, the app merges both: every logged session is kept, and the most recently edited skates, spots and styles win. The app uses the `drive.file` permission, which means it can only see the file it creates, not the rest of your Drive.
 
 Google sign-ins only last about an hour. After that, or after reopening the app, tap **Resume Drive sync** in the header. Everything still saves in the browser in the meantime.
 
