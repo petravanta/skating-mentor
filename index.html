@@ -181,7 +181,8 @@ textarea{resize:vertical}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:10px}
 .checks{display:flex;flex-wrap:wrap;gap:6px}
 .checks label{display:inline-flex;align-items:center;gap:5px;font-size:13px;border:1px solid var(--line);border-radius:6px;padding:3px 8px;background:var(--sunk)}
-.photo{display:flex;flex-direction:column;gap:8px}
+.photo{display:flex;flex-direction:column;gap:8px;border-radius:10px;outline:2px dashed transparent;outline-offset:3px}
+.photo.dragging{outline-color:var(--accent);background:var(--accent-soft)}
 .photo img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
 .photo>span{display:grid;place-items:center;aspect-ratio:4/3;max-height:120px;border:1px dashed var(--line);border-radius:8px;background:var(--sunk)}
 .ctx-photos{margin-top:12px}
@@ -392,7 +393,7 @@ function shrinkImage(file,max=640){return new Promise((res,rej)=>{
   img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('bad image'))}; img.src=url})}
 function photoBlock(kind,k){
   const src=k.photo&&state.photos[k.photo];
-  return `<div class="photo">${src?`<img src="${src}" alt="${esc(k.name)}">`:`<span class="muted small">No photo yet</span>`}
+  return `<div class="photo" data-drop="${kind}" data-owner="${k.id}">${src?`<img src="${src}" alt="${esc(k.name)}">`:`<span class="muted small">Drop a photo here</span>`}
     <div class="row"><label class="btn sm" for="ph-${k.id}">${src?'Change photo':'Add photo'}</label>
     <input type="file" id="ph-${k.id}" accept="image/*" data-photo="${kind}" data-owner="${k.id}" hidden>
     ${src?`<button class="btn sm ghost" data-rmphoto="${kind}" data-owner="${k.id}">Remove photo</button>`:''}</div></div>`;
@@ -943,6 +944,19 @@ function viewSettings(){
 }
 
 /* ---------------- Events ---------------- */
+async function setPhoto(kind,owner,file){
+  const list=kind==='skate'?state.profile.skates:state.profile.spots, k=list.find(x=>x.id===owner);
+  if(!k) return;
+  if(!file.type.startsWith('image/')){toast('That file isn\u2019t an image.');return}
+  try{const data=await shrinkImage(file); const old=k.photo; k.photo='ph'+uid6(); await savePhoto(k.photo,data); await dropPhoto(old); touchProfile(); render(); toast('Photo saved')}
+  catch(_){toast('That file couldn\u2019t be read as an image.')}
+}
+// Drag an image file onto a skate or spot photo box
+const dropZone=e=>e.target.closest&&e.target.closest('[data-drop]');
+document.addEventListener('dragover',e=>{const z=dropZone(e);if(!z)return;e.preventDefault();e.dataTransfer.dropEffect='copy';z.classList.add('dragging')});
+document.addEventListener('dragleave',e=>{const z=dropZone(e);if(z&&!z.contains(e.relatedTarget))z.classList.remove('dragging')});
+document.addEventListener('drop',e=>{const z=dropZone(e);if(!z)return;e.preventDefault();z.classList.remove('dragging');
+  const f=[...(e.dataTransfer.files||[])][0]; if(f) setPhoto(z.dataset.drop,z.dataset.owner,f); else toast('Drop an image file from your computer.')});
 function toast(t){const h=document.getElementById('toastHost');h.innerHTML=`<div class="toast" role="status">${esc(t)}</div>`;clearTimeout(toast.t);toast.t=setTimeout(()=>h.innerHTML='',2600)}
 function touchProfile(){state.profile.examples=false;saveProfile()}
 async function logRating(skill,r,note){
@@ -1013,11 +1027,7 @@ document.addEventListener('change',async e=>{
   if(d.sk){const k=state.profile.skates.find(x=>x.id===d.sk);k[d.key]=d.key==='grind'?t.value==='1':t.value;touchProfile();render();return}
   if(d.sp){const k=state.profile.spots.find(x=>x.id===d.sp);k[d.key]=t.value;touchProfile();render();return}
   if(d.feat){const k=state.profile.spots.find(x=>x.id===d.spot);const i=k.features.indexOf(d.feat);t.checked?(i<0&&k.features.push(d.feat)):(i>=0&&k.features.splice(i,1));touchProfile();return}
-  if(d.photo&&t.files[0]){
-    const list=d.photo==='skate'?state.profile.skates:state.profile.spots, k=list.find(x=>x.id===d.owner);
-    try{const data=await shrinkImage(t.files[0]); const old=k.photo; k.photo='ph'+uid6(); await savePhoto(k.photo,data); await dropPhoto(old); touchProfile(); render(); toast('Photo saved')}
-    catch(_){toast('That file couldn\u2019t be read as an image.')}
-    return}
+  if(d.photo&&t.files[0]){await setPhoto(d.photo,d.owner,t.files[0]);return}
   if(t.id==='importFile'&&t.files[0]){
     try{const j=JSON.parse(await t.files[0].text()); if(!j.profile||!Array.isArray(j.logs)) throw 0;
       const have=new Set(state.logs.map(l=>l.id)); const add=j.logs.filter(l=>l&&l.id&&l.skill&&!have.has(l.id));
