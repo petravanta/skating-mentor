@@ -1,0 +1,925 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font-size:14px}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<title>Skating Mentor</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: sticky header with tabs over one working column; skill map is a scrollable left-to-right progression graph; skill detail opens as a side sheet (bottom sheet on phones). */
+:root{
+  --bg:#eef2f4; --surface:#ffffff; --sunk:#e3e9ec; --line:#cdd6db; --ink:#14212a; --muted:#566771; --faint:#8a99a2;
+  --accent:#c2306f; --accent-ink:#ffffff; --accent-soft:#f8dde8;
+  --lv-new:#9aa8b0; --lv-learn:#c07a00; --lv-dev:#2f6fd0; --lv-conf:#11897a; --lv-solid:#0c5e3e;
+  --lv-learn-bg:#fbefd9; --lv-dev-bg:#e1ebfa; --lv-conf-bg:#d9f1ec; --lv-solid-bg:#d5eadf;
+  --danger:#b3261e;
+  --f-display:"Unbounded","Arial Rounded MT Bold",system-ui,sans-serif;
+  --f-body:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f161b; --surface:#172129; --sunk:#111a20; --line:#2a3842; --ink:#e4ecf0; --muted:#9fb0ba; --faint:#6b7d88;
+  --accent:#f0679f; --accent-ink:#1a0710; --accent-soft:#3d1a2a;
+  --lv-new:#64757f; --lv-learn:#e6a33a; --lv-dev:#6ea0f0; --lv-conf:#3cc3ad; --lv-solid:#6fd39a;
+  --lv-learn-bg:#3a2a10; --lv-dev-bg:#182a45; --lv-conf-bg:#0f3530; --lv-solid-bg:#143224;
+  --danger:#ff8a80; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f161b; --surface:#172129; --sunk:#111a20; --line:#2a3842; --ink:#e4ecf0; --muted:#9fb0ba; --faint:#6b7d88;
+  --accent:#f0679f; --accent-ink:#1a0710; --accent-soft:#3d1a2a;
+  --lv-new:#64757f; --lv-learn:#e6a33a; --lv-dev:#6ea0f0; --lv-conf:#3cc3ad; --lv-solid:#6fd39a;
+  --lv-learn-bg:#3a2a10; --lv-dev-bg:#182a45; --lv-conf-bg:#0f3530; --lv-solid-bg:#143224;
+  --danger:#ff8a80; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--surface)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}
+.topbar{display:flex;align-items:center;gap:16px;padding-block:12px 0;flex-wrap:wrap}
+.brand{font-family:var(--f-display);font-weight:700;font-size:18px;letter-spacing:-.01em;display:flex;align-items:center;gap:10px}
+.wheel{width:26px;height:26px;flex:none}
+.save-state{margin-left:auto;font-size:12px;color:var(--muted);font-family:var(--f-mono)}
+nav.tabs{display:flex;gap:4px;overflow-x:auto;padding-top:8px;scrollbar-width:none}
+nav.tabs button{background:none;border:0;border-bottom:3px solid transparent;padding:8px 12px 9px;font-weight:600;color:var(--muted);white-space:nowrap}
+nav.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+main{padding-block:20px 80px}
+h2{font-family:var(--f-display);font-weight:500;font-size:20px;letter-spacing:-.01em;margin:0;text-wrap:balance}
+h3{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0;font-weight:600}
+p{margin:0}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.stack{display:flex;flex-direction:column;gap:16px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 14px;font-weight:600;font-size:14px}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:none}
+.btn.danger{color:var(--danger)}
+.btn.sm{padding:4px 10px;font-size:13px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 12px;font-size:13px;font-weight:600;color:var(--muted)}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+label.field{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+select,input[type=text],textarea{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:15px;text-transform:none;letter-spacing:0;font-weight:500;min-width:0}
+textarea{resize:vertical}
+/* context bar */
+.ctx{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:720px){.ctx{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.ctx-note{font-size:13px;color:var(--muted);margin-top:10px}
+/* plan */
+.plan{display:flex;flex-direction:column;gap:12px}
+.item{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 14px;align-items:start}
+.item .slot{grid-row:1/span 3;width:52px;text-align:center;padding-top:2px}
+.item .slot b{display:block;font-family:var(--f-mono);font-size:18px;font-weight:500}
+.item .slot span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.role{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+.role.warm{color:var(--lv-dev)} .role.work{color:var(--lv-learn)} .role.new{color:var(--accent)} .role.review{color:var(--lv-conf)} .role.off{color:var(--muted)}
+.item .name{font-weight:700;font-size:17px;background:none;border:0;padding:0;text-align:left;color:var(--ink)}
+.item .name:hover{text-decoration:underline;text-decoration-color:var(--accent)}
+.item .why{color:var(--muted);font-size:14px}
+.item ul{margin:4px 0 0;padding-left:18px;font-size:14px}
+.item .lvl{grid-column:3;grid-row:1}
+.rate{grid-column:2/span 2;display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center}
+.rate .lbl{font-size:12px;color:var(--muted);margin-right:2px}
+.rate button{border:1px solid var(--line);background:var(--sunk);border-radius:6px;padding:4px 9px;font-size:13px;font-weight:600}
+.rate button:hover{border-color:var(--accent)}
+.logged{font-size:13px;color:var(--lv-conf);font-weight:600}
+@media (max-width:560px){.item{grid-template-columns:minmax(0,1fr) auto}.item .slot{grid-row:auto;grid-column:1/span 2;text-align:left;width:auto;display:flex;gap:6px;align-items:baseline}.item .slot b{display:inline;font-size:14px}.item .lvl{grid-column:2;grid-row:2}.rate{grid-column:1/span 2}}
+/* level pill */
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:700;white-space:nowrap;background:var(--sunk);color:var(--muted)}
+.pill .pct{font-family:var(--f-mono);font-weight:500}
+.pill.l1{background:var(--lv-learn-bg);color:var(--lv-learn)}
+.pill.l2{background:var(--lv-dev-bg);color:var(--lv-dev)}
+.pill.l3{background:var(--lv-conf-bg);color:var(--lv-conf)}
+.pill.l4{background:var(--lv-solid-bg);color:var(--lv-solid)}
+.pill.lock{background:none;border:1px dashed var(--line)}
+.hint-list{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.hint-list button{background:none;border:0;padding:0;text-align:left;color:var(--ink);font-weight:600}
+.hint-list button:hover{color:var(--accent)}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+@media (max-width:720px){.two{grid-template-columns:minmax(0,1fr)}}
+.banner{background:var(--accent-soft);border-radius:var(--r);padding:12px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.banner p{flex:1 1 260px}
+/* map */
+.maptools{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.mapbox{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:auto;max-height:72vh;position:relative;
+  background-image:radial-gradient(var(--line) 1px,transparent 1px);background-size:22px 22px}
+.mapbox svg{display:block}
+.edge{fill:none;stroke:var(--line);stroke-width:1.6}
+.edge.on{stroke:var(--accent);stroke-width:2.2}
+.edge.dim{opacity:.25}
+.node{cursor:pointer}
+.node rect.bg{fill:var(--surface);stroke:var(--line);stroke-width:1.2}
+.node text{fill:var(--ink);font-family:var(--f-body);font-size:12.5px;font-weight:600}
+.node text.sub{fill:var(--muted);font-size:10.5px;font-weight:500;font-family:var(--f-mono)}
+.node rect.bar-bg{fill:var(--sunk)}
+.node.locked rect.bg{stroke-dasharray:4 3;fill:var(--bg)}
+.node.locked text{fill:var(--faint)}
+.node.ready rect.bg{stroke:var(--accent);stroke-width:2}
+.node.l1 rect.bg{fill:var(--lv-learn-bg);stroke:var(--lv-learn)}
+.node.l2 rect.bg{fill:var(--lv-dev-bg);stroke:var(--lv-dev)}
+.node.l3 rect.bg{fill:var(--lv-conf-bg);stroke:var(--lv-conf)}
+.node.l4 rect.bg{fill:var(--lv-solid-bg);stroke:var(--lv-solid)}
+.node.l1 rect.bar{fill:var(--lv-learn)} .node.l2 rect.bar{fill:var(--lv-dev)} .node.l3 rect.bar{fill:var(--lv-conf)} .node.l4 rect.bar{fill:var(--lv-solid)}
+.node.ctxblock{opacity:.55}
+.node.faded{opacity:.5}
+.node.dim{opacity:.22}
+.node.sel rect.bg{stroke:var(--accent);stroke-width:3}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);align-items:center}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:4px;vertical-align:-2px;border:1.5px solid}
+.colhead{fill:var(--faint);font-family:var(--f-mono);font-size:10.5px;letter-spacing:.08em}
+/* list */
+.slist{display:flex;flex-direction:column}
+.srow{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
+.srow:last-child{border-bottom:0}
+.srow .nm{background:none;border:0;padding:0;text-align:left;font-weight:600;color:var(--ink)}
+.dots{font-family:var(--f-mono);color:var(--faint);font-size:12px;letter-spacing:1px}
+.srow select{font-size:13px;padding:4px 6px}
+@media (max-width:520px){.srow{grid-template-columns:minmax(0,1fr) auto}.srow .dots{display:none}}
+/* drawer */
+.scrim{position:fixed;inset:0;background:rgba(10,16,20,.35);z-index:40}
+.drawer{position:fixed;z-index:41;top:0;right:0;bottom:0;width:min(420px,100%);background:var(--surface);border-left:1px solid var(--line);overflow-y:auto;
+  padding:calc(env(safe-area-inset-top,0px) + 18px) max(18px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 24px) 18px;display:flex;flex-direction:column;gap:16px}
+@media (max-width:640px){.drawer{top:auto;left:0;width:100%;max-height:86vh;border-left:0;border-top:1px solid var(--line);border-radius:16px 16px 0 0;
+  padding-left:max(18px,env(safe-area-inset-left,0px))}}
+.drawer .x{position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);right:max(12px,env(safe-area-inset-right,0px));background:var(--sunk);border:0;border-radius:999px;width:32px;height:32px;font-size:18px;line-height:1}
+@media (max-width:640px){.drawer .x{top:12px}}
+.drawer h2{padding-right:40px}
+.drawer ul{margin:0;padding-left:18px}
+.linklist{display:flex;flex-direction:column;gap:6px}
+.linklist button{background:none;border:0;padding:0;display:flex;justify-content:space-between;gap:8px;align-items:center;text-align:left;color:var(--ink);font-weight:600;width:100%}
+.linklist button:hover span:first-child{color:var(--accent)}
+.meter{height:6px;border-radius:3px;background:var(--sunk);overflow:hidden}
+.meter i{display:block;height:100%;border-radius:3px}
+.hist{display:flex;flex-direction:column;gap:4px;font-size:13px}
+.hist div{display:flex;justify-content:space-between;gap:8px}
+/* history */
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:620px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stat b{display:block;font-family:var(--f-mono);font-size:24px;font-weight:500}
+.stat span{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.day h3{margin-bottom:6px}
+.entry{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding:8px 0;border-top:1px solid var(--line)}
+.entry .meta{font-size:12px;color:var(--muted)}
+.entry .note{font-size:13px;grid-column:1/span 2;font-style:italic;color:var(--muted)}
+/* gear */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:10px}
+.checks{display:flex;flex-wrap:wrap;gap:6px}
+.checks label{display:inline-flex;align-items:center;gap:5px;font-size:13px;border:1px solid var(--line);border-radius:6px;padding:3px 8px;background:var(--sunk)}
+.photo{display:flex;flex-direction:column;gap:8px}
+.photo img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+.photo>span{display:grid;place-items:center;aspect-ratio:4/3;max-height:120px;border:1px dashed var(--line);border-radius:8px;background:var(--sunk)}
+.ctx-photos{margin-top:12px}
+.ctx-photos img{width:88px;height:66px;object-fit:cover;border-radius:6px;border:1px solid var(--line)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 18px);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:14px;font-weight:600;z-index:60;max-width:calc(100% - 32px)}
+.empty{padding:28px 16px;text-align:center;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){.drawer{animation:slide .18s ease-out}@keyframes slide{from{transform:translateX(24px);opacity:.4}}}
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <svg class="wheel" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="14" fill="var(--accent)"/><circle cx="16" cy="16" r="7.5" fill="var(--surface)"/><circle cx="16" cy="16" r="3" fill="var(--ink)"/></svg>
+        Skating Mentor
+      </div>
+      <span class="save-state" id="saveState">Loading…</span>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="today" aria-selected="true">Today</button>
+      <button role="tab" data-tab="map" aria-selected="false">Skill map</button>
+      <button role="tab" data-tab="log" aria-selected="false">Progress log</button>
+      <button role="tab" data-tab="gear" aria-selected="false">Skates, spots &amp; styles</button>
+    </nav>
+  </div>
+</header>
+<main class="wrap" id="main"></main>
+<div id="drawerHost"></div>
+<div id="toastHost"></div>
+
+<script>
+/* ---------------- Skill graph ---------------- */
+const STYLES={
+  F:{n:'Foundations'}, C:{n:'Cruising & fitness'}, P:{n:'Park'}, S:{n:'Street'},
+  D:{n:'Dance & artistic'}, L:{n:'Slalom & freestyle'}, O:{n:'Off-skate'}
+};
+const FEAT={
+  space:{n:'Open flat space',a:'open space'}, wall:{n:'Wall or rail to hold',a:'something to hold'}, cones:{n:'Cones or cups',a:'cones'},
+  slope:{n:'Gentle slope',a:'a slope'}, curb:{n:'Curb',a:'a curb'}, ledge:{n:'Ledge or box',a:'a ledge'}, rail:{n:'Rail',a:'a rail'},
+  stairs:{n:'Stairs',a:'stairs'}, quarter:{n:'Quarter pipe or bank',a:'a quarter pipe'}, miniramp:{n:'Mini ramp',a:'a mini ramp'}, bowl:{n:'Bowl',a:'a bowl'}
+};
+const SURF={rink:'Indoor rink / smooth floor',smooth:'Smooth outdoor (court, lot)',rough:'Rough asphalt or path',park:'Skatepark',home:'Home / gym (no skating)'};
+const EQ={inline:'inline skates',quad:'quad skates',heel:'a heel brake',toe:'toe stops',grind:'a grind-ready setup'};
+
+const SKILLS=[
+// Foundations
+{id:'stance',st:'F',n:'Ready stance',d:1,req:[],desc:'Knees bent, chest up, weight over the middle of the feet. Everything else is built on this.',cues:['Nose over knees over toes','Feet hip-width, slightly staggered','Soft knees, never locked']},
+{id:'fall',st:'F',n:'Falling safely & getting up',d:1,req:[],desc:'Fall forward onto your pads, slide it out, and stand back up through a kneel.',cues:['Get low before you go down','Knee pads first, then wrist guards, and slide','Up: one knee, other skate flat, hands on knee, stand']},
+{id:'stride',st:'F',n:'Forward stride',d:1,req:['stance'],desc:'Push out to the side and recover under the hips, alternating feet.',cues:['Push sideways, not backwards','Bring the foot back under you before the next push','Fully extend the pushing leg']},
+{id:'swizzle',st:'F',n:'Forward swizzles',d:1,req:['stance'],desc:'Two-foot lemon shapes: heels in, toes out, then squeeze back together.',cues:['Press out through the heels, pull in with the inner thighs','Stay low the whole time']},
+{id:'glide1',st:'F',n:'One-foot glide',d:2,req:['stride'],desc:'Hold a balanced glide on one foot for several seconds, both sides.',cues:['Hips stacked over the gliding skate','Free foot lifted beside the ankle','Aim for 5 seconds, then 10']},
+{id:'aframe',st:'F',n:'A-frame turn',d:1,req:['stride'],desc:'Wide-stance turn steered by pressing the outside skate onto its inside edge.',cues:['Feet wider than shoulders','Look and point where you are going','Weight on the outside foot']},
+{id:'hop',st:'F',n:'Two-foot hop',d:2,req:['stride'],desc:'Jump off both skates while rolling and land balanced.',cues:['Bend deep, spring, absorb the landing','Land knees soft, feet hip-width','Arms forward for balance']},
+{id:'plow',st:'F',n:'Plow stop',d:2,req:['swizzle'],desc:'Push skates out into a wide V (inline) or pigeon-toe (quad) and scrub off speed.',cues:['Wide stance, then press the heels out','Low hips, push into the ground','Start slow, then add speed']},
+{id:'heelstop',st:'F',n:'Heel brake stop',d:1,req:['stride'],eq:['heel'],desc:'Scissor the braking foot forward and lift its toe to press the heel brake.',cues:['Brake foot forward until knees overlap','Lift the toe and press down through the heel','Most weight stays on the back leg']},
+{id:'toedrag',st:'F',n:'Toe-stop drag',d:2,req:['glide1'],eq:['toe'],desc:'Glide on one foot and drag the other toe stop behind you to slow down.',cues:['Drag foot turned out, behind the glide foot','Weight stays on the front leg','Press gradually']},
+{id:'tstop',st:'F',n:'T-stop',d:2,req:['glide1'],desc:'Drag the back skate at a right angle behind the glide skate to brake.',cues:['Glide foot straight, knee bent','Back skate at 90° behind the heel','Light drag first, then add pressure']},
+{id:'edges',st:'F',n:'Inside & outside edges',d:2,req:['glide1'],desc:'Hold curves on each edge of each foot. These are the base of every turn and crossover.',cues:['Lean ankle and knee together','Outside edges are the hard ones, so go slow','Draw half-circles along a line']},
+{id:'parallel',st:'F',n:'Parallel turn',d:2,req:['aframe','glide1'],desc:'Turn with skates close together, leaning on matching edges.',cues:['Inside skate slightly ahead','Lean from the ankles, not the shoulders','Shoulders rotate into the turn first']},
+{id:'bswizzle',st:'F',n:'Backward swizzles',d:2,req:['swizzle'],desc:'Lemons rolling backwards: toes in, heels out.',cues:['Look over one shoulder','Weight on the balls of the feet','Small lemons first']},
+{id:'twofootturn',st:'F',n:'Two-foot turn',d:2,req:['bswizzle','parallel'],desc:'Turn from forward to backward (and back) on both skates while rolling.',cues:['Shoulders rotate first, hips follow','Stay centred over both skates','Practise both directions']},
+{id:'bstride',st:'F',n:'Backward C-cuts',d:3,req:['bswizzle'],desc:'Backward pushes drawing C shapes with alternating skates.',cues:['Push from the front wheels outward','Keep hips square to your line','Check behind you every few strides']},
+{id:'crossfwd',st:'F',n:'Forward crossovers',d:3,req:['edges','parallel'],desc:'Step the outside skate over the inside one around a curve.',cues:['Power comes from the under-leg on its outside edge','Lift and place the crossing skate, don’t swing it','Shoulders face into the circle']},
+{id:'mohawk',st:'F',n:'Mohawk turn',d:3,req:['twofootturn','edges'],desc:'Step from forward to backward onto the other foot, heels pointing at each other.',cues:['Open the free heel toward the gliding heel','Hips open like a door','Smooth weight transfer']},
+{id:'bcross',st:'F',n:'Backward crossovers',d:4,req:['bstride','crossfwd'],desc:'Cross the front skate over while skating backwards around a curve.',cues:['The under-push is the power','Look into the circle','Hips low and level']},
+{id:'powerslide',st:'F',n:'Powerslide',d:4,req:['bstride','mohawk'],desc:'Skate backwards, then open into a sideways slide on the leading skate to stop.',cues:['Commit your weight to the sliding leg','Lead with the shoulders','Learn it on smooth ground']},
+{id:'smallobst',st:'F',n:'Hop over an obstacle',d:2,req:['hop'],desc:'Clear a small object, like a shoe or a stick, while rolling.',cues:['Pick your take-off spot','Lift the knees, don’t just pull the feet up','Look past the object']},
+// Cruising & fitness
+{id:'rough',st:'C',n:'Rolling on rough ground',d:2,req:['stride'],surf:['rough','smooth','park'],desc:'Stay loose over cracks, pebbles and patched asphalt.',cues:['Lower stance, one foot slightly ahead','Weight back a touch over cracks','Soft knees are your suspension']},
+{id:'longstride',st:'C',n:'Long efficient stride',d:2,req:['glide1'],desc:'Fewer, longer pushes with a full glide on each foot.',cues:['Glide until speed drops, then push','Full extension, low recovery','Count strides per lap and cut the number']},
+{id:'endurance',st:'C',n:'Steady endurance skate',d:2,req:['stride'],desc:'Twenty minutes or more at a steady effort, holding form as you tire.',cues:['Conversation pace','Check your knee bend every lap','Drink water']},
+{id:'curbdrop',st:'C',n:'Rolling off a curb',d:2,req:['hop','stance'],need:['curb'],desc:'Roll off a curb without slowing down or stepping.',cues:['Staggered stance, front foot leads off','Bend as you drop to absorb','Stay over your feet']},
+{id:'hills',st:'C',n:'Hill speed control',d:3,req:['parallel','tstop'],need:['slope'],desc:'Use slalom turns and drags to stay in control going downhill.',cues:['Wide carves scrub speed','Never outrun your stopping ability','Start on gentle slopes']},
+{id:'intervals',st:'C',n:'Sprint intervals',d:3,req:['longstride','crossfwd'],need:['space'],desc:'Short hard efforts with easy recovery laps.',cues:['8 × 20 seconds hard, 40 easy','Stay low on the sprints','Crossovers through the corners']},
+{id:'doublepush',st:'C',n:'Double push',d:4,req:['longstride','edges'],eq:['inline'],desc:'Each stroke sweeps in under the body on the outside edge, then pushes out on the inside edge.',cues:['Start the stroke on the outside edge under you','Roll onto the inside edge and push out','Relaxed, rhythmic upper body']},
+// Park
+{id:'bank',st:'P',n:'Rolling a bank or small quarter',d:2,req:['stance','bswizzle'],need:['quarter|miniramp|bowl'],desc:'Roll partway up, stall, and come back down backwards (fakie).',cues:['Lean into the ramp, not away from it','Look back as you come down','Go a little higher each time']},
+{id:'pump',st:'P',n:'Pumping transitions',d:3,req:['bank'],need:['miniramp|bowl|quarter'],desc:'Gain speed by compressing into the flat and extending up the wall.',cues:['Compress at the bottom, extend up the wall','Timing beats strength','Count how many pumps you can link']},
+{id:'dropin',st:'P',n:'Drop in',d:3,req:['bank'],need:['quarter|miniramp|bowl'],desc:'Start on the coping and roll into the ramp.',cues:['Back skate on the coping, front skate over the edge','Commit your weight forward','Look down the ramp, not at your feet']},
+{id:'wallturn',st:'P',n:'Kick turn on the wall',d:3,req:['pump','twofootturn'],need:['quarter|miniramp|bowl'],desc:'Turn at the top of the transition and come back down forwards.',cues:['Rotate the shoulders at the peak','Turn at the slowest point','Start low on the wall']},
+{id:'stall',st:'P',n:'Stall on the coping',d:3,req:['dropin','pump'],need:['quarter|miniramp|bowl'],desc:'Ride up, stall on the coping, and drop back in.',cues:['Unweight as you reach the top','Set the skates on the deck or coping','Re-enter like a drop in']},
+{id:'carve',st:'P',n:'Carving the bowl',d:4,req:['pump','crossfwd'],need:['bowl'],desc:'Link pumps and carves around the walls of a bowl.',cues:['Look to the next wall','Pump through the corners','Tight crossovers in the shallow end']},
+{id:'air180',st:'P',n:'180 air on a quarter',d:4,req:['wallturn','j180'],need:['quarter|miniramp|bowl'],desc:'Leave the coping, rotate 180° and land back into the ramp.',cues:['Carry speed, pop straight up','Rotate with the head and shoulders','Land on the transition, not the flat']},
+{id:'copinggrind',st:'P',n:'Coping grind',d:4,req:['stall','frontside'],eq:['grind'],need:['quarter|miniramp|bowl'],desc:'Lock onto the coping and slide along it before dropping back in.',cues:['Lock the grind plate onto the coping','Stay over the top, don’t lean back','Start slow']},
+{id:'air360',st:'P',n:'360 air',d:5,req:['air180','jump360'],need:['quarter|miniramp|bowl'],desc:'A full rotation out of the ramp and back in.',cues:['More speed than the 180','Wind up before the lip','Spot the landing over your shoulder']},
+// Street
+{id:'curbhop',st:'S',n:'Hop up a curb',d:2,req:['hop'],need:['curb'],desc:'Hop onto a curb while rolling, landing on both skates.',cues:['Approach square to the curb','Lift knees high','Land with weight centred']},
+{id:'gap',st:'S',n:'Gap jump',d:3,req:['smallobst'],desc:'Jump for distance across a gap you mark out (chalk lines, two bags).',cues:['Speed does the work, not the jump','Extend in the air, tuck to land','Widen the gap slowly']},
+{id:'j180',st:'S',n:'Flat 180 jump',d:3,req:['hop','twofootturn'],desc:'Jump, rotate 180° and land rolling backwards.',cues:['Wind up the shoulders, then release','Spot your landing','Land on both skates, knees bent']},
+{id:'jump360',st:'S',n:'Flat 360 jump',d:4,req:['j180'],desc:'A full rotation jump on flat ground.',cues:['Tight arms speed up rotation','Head leads, body follows','Land on a slight curve, not dead straight']},
+{id:'frontside',st:'S',n:'Frontside grind',d:3,req:['curbhop'],eq:['grind'],need:['ledge|curb'],desc:'Lock both skates across a ledge and slide.',cues:['Approach at a slight angle','Land both skates at once','Look at the end of the ledge']},
+{id:'soul',st:'S',n:'Soul grind',d:4,req:['frontside','glide1'],eq:['inline','grind'],need:['ledge|curb'],desc:'Front skate grinds on the H-block, back skate on the soul plate.',cues:['Back foot on the soul plate','Hips over the ledge','Keep the front foot flat']},
+{id:'royale',st:'S',n:'Royale',d:4,req:['frontside'],eq:['inline','grind'],need:['ledge|curb'],desc:'Front skate on the H-block, back foot’s outside soul plate behind you.',cues:['Back knee turned out','Weight over the front skate','Start on a low curb']},
+{id:'stairs',st:'S',n:'Rolling down stairs',d:4,req:['curbdrop','hop'],need:['stairs'],desc:'Ride down a short stair set staying loose over each step.',cues:['Staggered stance, weight back slightly','Let the knees absorb each step','Start with 2–3 stairs']},
+{id:'rail',st:'S',n:'Rail grind',d:5,req:['frontside'],eq:['grind'],need:['rail'],desc:'Frontside on a round rail.',cues:['Grind a low rail or ledge edge first','Commit and lock in','Hands out, eyes on the end']},
+{id:'stairgap',st:'S',n:'Jumping a stair set',d:5,req:['stairs','gap'],need:['stairs'],desc:'Clear a stair set in one jump.',cues:['Pick a set you can already roll','Pop off the last flat section','Land with knees deeply bent']},
+// Dance & artistic
+{id:'rhythm',st:'D',n:'Skating to the beat',d:2,req:['stride','swizzle'],desc:'Time strides and swizzles to music, changing moves on the beat.',cues:['Count the 8-count out loud','One move per phrase','Stay relaxed in the upper body']},
+{id:'heeltoe',st:'D',n:'Heel-toe roll',d:2,req:['glide1'],desc:'Roll with one skate on its heel and the other on its toe.',cues:['Stagger the feet a skate-length apart','Hold the angle steady','Practise both leads']},
+{id:'crazylegs',st:'D',n:'Crazy legs',d:3,req:['swizzle','heeltoe'],smooth:1,desc:'Alternating heel-toe swizzle footwork, a jam skating staple.',cues:['Small fast movements','Toes in, heels out, swap','Bounce with the knees']},
+{id:'shootduck',st:'D',n:'Shoot the duck',d:3,req:['glide1','stance'],desc:'Glide on one deeply bent leg with the other extended forward.',cues:['Sink slowly, hands forward','Extended leg straight, heel up','Build depth over sessions']},
+{id:'spin2',st:'D',n:'Two-foot spin',d:3,req:['edges','twofootturn'],smooth:1,desc:'Spin in place on both skates.',cues:['Wind up, then pull the arms in','Weight on the balls of the feet','Spot a point to avoid dizziness']},
+{id:'toespin',st:'D',n:'Toe-stop spin',d:3,req:['toedrag','spin2'],eq:['toe'],smooth:1,desc:'Spin on the toe stops.',cues:['Rise up onto the toes from a two-foot spin','Keep the knees together','Short spins, clean exit']},
+{id:'threeturn',st:'D',n:'Three-turn',d:4,req:['mohawk','edges'],smooth:1,desc:'One-foot turn from forward to backward, tracing a 3 on the floor.',cues:['Check the shoulders against the turn','Rise as you turn, sink after','Start from a slow forward edge']},
+{id:'spreadeagle',st:'D',n:'Spread eagle',d:4,req:['edges','mohawk'],smooth:1,desc:'Glide on both skates heels-in, toes pointing outward.',cues:['Open from the hips','Chest up, weight centred','Short holds at first']},
+{id:'grapevine',st:'D',n:'Grapevine',d:4,req:['bstride','twofootturn','crazylegs'],smooth:1,desc:'Weaving footwork that turns between forward and backward continuously.',cues:['Feet trace an S along the floor','Turn from the hips','Slow the count down to learn it']},
+{id:'waltz',st:'D',n:'Waltz jump',d:4,req:['threeturn','hop'],smooth:1,desc:'Half-rotation jump from a forward outside edge to a back outside edge.',cues:['Swing the free leg through','Land on the opposite foot','Check the arms on landing']},
+{id:'scratch',st:'D',n:'One-foot spin',d:5,req:['spin2','threeturn'],smooth:1,desc:'Centred spin on one skate (scratch spin).',cues:['Enter from a back outside edge','Free leg crosses in to speed up','Arms pull in last']},
+// Slalom & freestyle
+{id:'fish',st:'L',n:'Forward fish',d:2,req:['swizzle'],need:['cones'],smooth:1,desc:'Swizzle through a cone line, both skates on either side of each cone.',cues:['Cones 80 cm apart to start','Small swizzles, eyes ahead','Keep a steady rhythm']},
+{id:'crisscross',st:'L',n:'Criss-cross',d:3,req:['fish'],need:['cones'],smooth:1,desc:'Cross and uncross the skates around alternate cones.',cues:['Cross on one cone, open on the next','Stay tall, knees soft','Small pushes for speed']},
+{id:'snake',st:'L',n:'Snake',d:3,req:['fish','edges'],need:['cones'],smooth:1,desc:'Skates in line, one behind the other, weaving through the cones.',cues:['Front skate leads the line','Hips drive the weave','Both skates follow the same track']},
+{id:'backfish',st:'L',n:'Backward fish',d:3,req:['fish','bswizzle'],need:['cones'],smooth:1,desc:'The fish, rolling backwards.',cues:['Look over the shoulder down the line','Small, even lemons','Start with wider cone spacing']},
+{id:'heelwheel',st:'L',n:'Heel wheeling',d:4,req:['heeltoe','glide1'],eq:['inline'],smooth:1,desc:'Roll on the back wheels of both skates.',cues:['Toes up, knees soft','Arms forward for balance','Short distances, then longer']},
+{id:'onefoot',st:'L',n:'One-foot slalom',d:4,req:['snake','glide1'],need:['cones'],smooth:1,desc:'Weave the line on a single skate.',cues:['Switch edges at each cone','Free leg stays close','Wider spacing first']},
+{id:'backcross',st:'L',n:'Backward criss-cross',d:4,req:['crisscross','backfish'],need:['cones'],smooth:1,desc:'The criss-cross, rolling backwards.',cues:['Look back down the line','Cross from the hips','Steady, even tempo']},
+{id:'eagle',st:'L',n:'Eagle',d:4,req:['snake','spreadeagle'],need:['cones'],smooth:1,desc:'Spread-eagle position travelling through the cones.',cues:['Open hips before the first cone','Steer by shifting weight','Keep the heels facing each other']},
+// Off-skate
+{id:'squat',st:'O',n:'Bodyweight squats',d:1,req:[],sup:['stance','stride','hop'],desc:'3 × 15, slow down and quick up. The skating position under load.',cues:['Chest up, knees track over toes','Hips back like sitting','Hold the bottom for a second']},
+{id:'wallsit',st:'O',n:'Wall sit',d:1,req:[],sup:['stance','shootduck','endurance'],desc:'Hold a skating-depth sit against a wall. 3 × 45 seconds.',cues:['Thighs near parallel','Breathe steadily','Add time each week']},
+{id:'balance',st:'O',n:'Single-leg balance',d:1,req:[],sup:['glide1','edges','tstop'],desc:'Stand on one leg for 30 seconds, then with eyes closed.',cues:['Soft knee, hip level','Eyes closed is the progression','Both sides']},
+{id:'calf',st:'O',n:'Calf raises & ankle mobility',d:1,req:[],sup:['edges','bank','heeltoe'],desc:'Slow calf raises plus knee-to-wall ankle stretches.',cues:['3 × 15 raises, slow lower','Knee-to-wall stretch, 10 each side','Ankle circles']},
+{id:'bridge',st:'O',n:'Glute bridges & band walks',d:1,req:[],sup:['stride','crossfwd','edges'],desc:'Bridges plus side steps with a resistance band: the push muscles.',cues:['Squeeze at the top of the bridge','Band above knees, stay low on side steps','2 × 15 each']},
+{id:'plank',st:'O',n:'Plank & side plank',d:1,req:[],sup:['stance','spin2','powerslide'],desc:'Core holds that keep your upper body quiet on skates.',cues:['Straight line from head to heels','3 × 30 seconds each','Don’t hold your breath']},
+{id:'stretch',st:'O',n:'Hip & hamstring mobility',d:1,req:[],sup:['spreadeagle','shootduck','powerslide'],desc:'Hip flexor, hamstring and adductor stretches after skating.',cues:['30 seconds per stretch','Ease in, never bounce','Both sides']},
+{id:'fallpractice',st:'O',n:'Fall rolls on a mat',d:1,req:[],sup:['fall','stairs','dropin'],desc:'Practise knee slides and shoulder rolls on a soft surface.',cues:['Wear pads','Get low before you go down','Roll, don’t brace']},
+{id:'lateral',st:'O',n:'Lateral lunges',d:1,req:['squat'],sup:['crossfwd','bcross','longstride'],desc:'Side-to-side lunges that copy the push of a stride.',cues:['Sit back into the bent leg','Straight leg toes forward','10 each side']},
+{id:'slsquat',st:'O',n:'Single-leg box squat',d:2,req:['squat','balance'],sup:['glide1','shootduck','onefoot'],desc:'Sit down to a box on one leg and stand back up.',cues:['Control the way down','Knee tracks over the foot','Lower box as you improve']},
+{id:'skaterhop',st:'O',n:'Skater bounds',d:2,req:['lateral'],sup:['stride','crossfwd','longstride','intervals'],desc:'Bound side to side, landing on one leg and sticking it.',cues:['Land soft and hold one second','Swing the arms across','3 × 10']},
+{id:'bosu',st:'O',n:'Balance board drills',d:2,req:['balance'],sup:['glide1','frontside','soul','heeltoe'],desc:'Balance board or cushion: two-foot then one-foot holds.',cues:['Near a wall at first','Small squats while balanced','30-second sets']},
+{id:'spinsock',st:'O',n:'Spin & spotting drill',d:2,req:['balance'],sup:['spin2','scratch','toespin','threeturn'],desc:'Turns in socks on a smooth floor, practising spotting.',cues:['Fix your eyes on one point','Whip the head round last','Both directions']},
+{id:'tuck',st:'O',n:'Tuck jumps',d:3,req:['squat','skaterhop'],sup:['hop','curbhop','smallobst','gap'],desc:'Explosive jumps pulling the knees to the chest.',cues:['Land quietly','Reset between reps','3 × 6']},
+{id:'shoe180',st:'O',n:'180 & 360 jumps in shoes',d:3,req:['tuck'],sup:['j180','jump360','air180','waltz'],desc:'Rotation jumps on the spot to learn the timing off skates.',cues:['Rotate with the head first','Stick the landing','Both directions']},
+{id:'pistol',st:'O',n:'Pistol squat progression',d:4,req:['slsquat'],sup:['shootduck','onefoot'],desc:'Work toward a full one-leg squat.',cues:['Hold a doorframe for support','Counterbalance with arms forward','Lower the support over weeks']}
+];
+const BYID=Object.fromEntries(SKILLS.map(s=>[s.id,s]));
+const CHILDREN={}; SKILLS.forEach(s=>s.req.forEach(r=>(CHILDREN[r]=CHILDREN[r]||[]).push(s.id)));
+const SUPPORTED_BY={}; SKILLS.forEach(s=>(s.sup||[]).forEach(t=>(SUPPORTED_BY[t]=SUPPORTED_BY[t]||[]).push(s.id)));
+
+const LEVELS=[
+  {n:'Not started',min:0},{n:'Learning',min:1},{n:'Developing',min:50},{n:'Confident',min:70},{n:'Solid',min:90}
+];
+const BASELINE_CONF=[0,25,60,80,95];
+const UNLOCK=50;
+const RATINGS=[null,'Not yet','Rarely','Half the time','Most tries','On demand'];
+const RATING_HELP=[null,'Couldn’t land it','A few times','About half my tries','Most tries','Clean, whenever I want'];
+
+/* ---------------- State & storage ---------------- */
+const LS_KEY='skatingMentor.v1', LS_PLAN='skatingMentor.plan';
+const uid6=()=>Math.random().toString(36).slice(2,8)+Date.now().toString(36).slice(-4);
+function defaultProfile(){return{
+  v:1, styles:['F','C','D','L','O'],
+  skates:[{id:'sk1',name:'My inline skates',type:'inline',brake:'heel',grind:false,wheels:'outdoor'},
+          {id:'sk2',name:'My quads',type:'quad',brake:'toe',grind:false,wheels:'indoor'}],
+  spots:[{id:'sp1',name:'Tennis court',surface:'smooth',features:['space','wall','cones']},
+         {id:'sp2',name:'Skatepark',surface:'park',features:['space','curb','ledge','rail','stairs','quarter','miniramp','bowl']},
+         {id:'sp3',name:'Indoor rink',surface:'rink',features:['space','wall']},
+         {id:'sp4',name:'Riverside path',surface:'rough',features:['space','curb','slope']},
+         {id:'sp5',name:'Home',surface:'home',features:[]}],
+  ctx:{skate:'sk1',spot:'sp1',minutes:45,focus:'balanced'},
+  examples:true
+};}
+let state={profile:defaultProfile(),logs:[],photos:{}};
+let backend='local', dbRef=null, profRef=null, logsCol=null, photosCol=null;
+
+function lsGet(k){try{return JSON.parse(localStorage.getItem(k)||'null')}catch(e){return null}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}
+function saveLocal(){lsSet(LS_KEY,state)}
+const local=lsGet(LS_KEY); if(local&&local.profile){state={profile:Object.assign(defaultProfile(),local.profile),logs:Array.isArray(local.logs)?local.logs:[],photos:local.photos||{}}}
+
+function setSaveState(t){document.getElementById('saveState').textContent=t}
+let profTimer=null;
+function saveProfile(){
+  saveLocal();
+  if(backend!=='cloud') return;
+  clearTimeout(profTimer);
+  setSaveState('Saving…');
+  profTimer=setTimeout(async()=>{
+    try{await profRef.set(JSON.parse(JSON.stringify(state.profile)));setSaveState('Saved to your account')}
+    catch(e){setSaveState('Saved in this browser');toast('Couldn’t save to your account. Kept in this browser for now.')}
+  },600);
+}
+async function saveLog(log){
+  state.logs.push(log); saveLocal();
+  if(backend==='cloud'){try{await logsCol.doc(log.id).set(log);setSaveState('Saved to your account')}catch(e){toast('Couldn’t save to your account. Kept in this browser for now.')}}
+}
+async function savePhoto(id,data){
+  state.photos[id]=data;
+  if(!lsSet(LS_KEY,state)&&backend!=='cloud') toast('This browser is out of space for photos. Remove one or export a backup.');
+  if(backend==='cloud'){try{await photosCol.doc(id).set({data})}catch(e){toast('Couldn\u2019t save the photo to your account.')}}
+}
+async function dropPhoto(id){
+  if(!id) return; delete state.photos[id]; saveLocal();
+  if(backend==='cloud'){try{await photosCol.doc(id).delete()}catch(e){}}
+}
+// Shrink a camera photo to a small JPEG so it fits in storage and backups
+function shrinkImage(file,max=640){return new Promise((res,rej)=>{
+  const url=URL.createObjectURL(file), img=new Image();
+  img.onload=()=>{const k=Math.min(1,max/Math.max(img.width,img.height)), c=document.createElement('canvas');
+    c.width=Math.round(img.width*k); c.height=Math.round(img.height*k); c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+    URL.revokeObjectURL(url); res(c.toDataURL('image/jpeg',0.72))};
+  img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('bad image'))}; img.src=url})}
+function photoBlock(kind,k){
+  const src=k.photo&&state.photos[k.photo];
+  return `<div class="photo">${src?`<img src="${src}" alt="${esc(k.name)}">`:`<span class="muted small">No photo yet</span>`}
+    <div class="row"><label class="btn sm" for="ph-${k.id}">${src?'Change photo':'Add photo'}</label>
+    <input type="file" id="ph-${k.id}" accept="image/*" data-photo="${kind}" data-owner="${k.id}" hidden>
+    ${src?`<button class="btn sm ghost" data-rmphoto="${kind}" data-owner="${k.id}">Remove photo</button>`:''}</div></div>`;
+}
+async function removeLog(id){
+  state.logs=state.logs.filter(l=>l.id!==id); saveLocal();
+  if(backend==='cloud'){try{await logsCol.doc(id).delete()}catch(e){toast('Couldn’t delete from your account.')}}
+}
+async function initCloud(){
+  try{
+    if(!window.claude||typeof window.claude.use!=='function'){setSaveState('Saved in this browser');return}
+    const [db,user]=await Promise.all([window.claude.use('db'),window.claude.use('user')]);
+    const id=user?await user.id():null;
+    if(!db||!id){setSaveState('Saved in this browser');return}
+    profRef=db.doc('data/users/'+id+'/profile'); logsCol=profRef.collection('logs'); photosCol=profRef.collection('photos');
+    const [ps,ls,ph]=await Promise.all([profRef.get(),logsCol.orderBy('ts','desc').limit(1000).get(),photosCol.limit(200).get()]);
+    backend='cloud';
+    if(ps.exists){
+      state.profile=Object.assign(defaultProfile(),ps.data());
+      state.logs=ls.docs.map(d=>d.data()).filter(Boolean);
+      state.photos={}; ph.docs.forEach(d=>{const x=d.data();if(x&&x.data)state.photos[d.id]=x.data});
+      saveLocal(); planCache=null; render();
+    }else{
+      // first visit with an account: carry over anything recorded in this browser
+      await profRef.set(JSON.parse(JSON.stringify(state.profile)));
+      for(const l of state.logs){await logsCol.doc(l.id).set(l)}
+      for(const [k,v] of Object.entries(state.photos)){await photosCol.doc(k).set({data:v})}
+    }
+    setSaveState('Saved to your account');
+  }catch(e){backend='local';setSaveState('Saved in this browser')}
+}
+
+/* ---------------- Confidence model ---------------- */
+const DAY=86400000;
+let CONF={};
+function computeConf(){
+  const by={};
+  [...state.logs].sort((a,b)=>a.ts<b.ts?-1:1).forEach(l=>{(by[l.skill]=by[l.skill]||[]).push(l)});
+  CONF={};
+  for(const id in by){
+    let v=0,n=0,last=null,sessions=0;
+    for(const l of by[id]){
+      if(l.base!=null){ if(l.base===0){v=0;n=0} else {v=l.base;n=3} }
+      else { const r=l.r/5*100; v=n===0?r:v*0.6+r*0.4; n++; sessions++ }
+      last=l.ts;
+    }
+    if(n===0){continue}
+    const days=(Date.now()-new Date(last).getTime())/DAY;
+    const fresh=Math.max(0.8,1-Math.max(0,days-14)/365*0.5);
+    const c=Math.round(v*Math.min(1,0.6+0.2*(n-1))*fresh);
+    CONF[id]={c:Math.max(1,c),last,days,sessions};
+  }
+}
+const conf=id=>CONF[id]?CONF[id].c:0;
+function levelOf(c){let i=0;LEVELS.forEach((L,k)=>{if(c>=L.min)i=k});return i}
+const unlocked=s=>s.req.every(r=>conf(r)>=UNLOCK);
+function pill(id){
+  const s=BYID[id], c=conf(id), lv=levelOf(c);
+  if(c===0&&!unlocked(s)) return `<span class="pill lock">Locked</span>`;
+  if(c===0) return `<span class="pill">Ready to start</span>`;
+  return `<span class="pill l${lv}">${LEVELS[lv].n} <span class="pct">${c}%</span></span>`;
+}
+const dots=d=>'●'.repeat(d)+'○'.repeat(5-d);
+
+/* ---------------- Context fit ---------------- */
+const curSkate=()=>state.profile.skates.find(k=>k.id===state.profile.ctx.skate)||null;
+const curSpot=()=>state.profile.spots.find(k=>k.id===state.profile.ctx.spot)||state.profile.spots[0]||{surface:'smooth',features:['space']};
+function blocker(s,skate,spot){
+  if(s.st==='O') return null;
+  if(!skate) return 'needs skates on';
+  if(spot.surface==='home') return 'needs somewhere to skate';
+  for(const e of s.eq||[]){
+    if(e==='inline'&&skate.type!=='inline') return 'needs inline skates';
+    if(e==='quad'&&skate.type!=='quad') return 'needs quad skates';
+    if(e==='heel'&&skate.brake!=='heel') return 'needs a heel brake';
+    if(e==='toe'&&skate.brake!=='toe') return 'needs toe stops';
+    if(e==='grind'&&!skate.grind) return 'needs a grind-ready setup';
+  }
+  for(const n of s.need||[]){const o=n.split('|'); if(!o.some(f=>spot.features.includes(f))) return 'needs '+o.map(f=>FEAT[f].a).join(' or ')}
+  if(s.surf&&!s.surf.includes(spot.surface)) return 'better outdoors';
+  if(s.smooth&&spot.surface==='rough') return 'needs smooth ground';
+  return null;
+}
+const styleOn=s=>s.st==='F'||state.profile.styles.includes(s.st);
+
+/* ---------------- Recommender ---------------- */
+function hash(str){let h=2166136261;for(const ch of str){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)}return (h>>>0)/4294967296}
+function descendants(id,acc=new Set()){(CHILDREN[id]||[]).forEach(c=>{if(!acc.has(c)){acc.add(c);descendants(c,acc)}});return acc}
+function userLevel(){const got=SKILLS.filter(s=>s.st!=='O'&&conf(s.id)>=UNLOCK);return got.length?got.reduce((a,s)=>a+s.d,0)/got.length:1}
+let planCache=null;
+function buildPlan(seed){
+  const p=state.profile, ctx=p.ctx, skate=curSkate(), spot=curSpot();
+  const offOnly=!skate||spot.surface==='home';
+  const lvl=userLevel(), focus=ctx.focus, mins=+ctx.minutes;
+  const cands=[], elsewhere=[];
+  for(const s of SKILLS){
+    if(!styleOn(s)||!unlocked(s)) continue;
+    const c=conf(s.id), info=CONF[s.id];
+    let kind=c===0?'new':c<70?'work':(info&&info.days>21)||c<85?'review':'solid';
+    if(s.st==='O'){cands.push({s,kind,score:0,off:true});continue}
+    const b=blocker(s,skate,spot);
+    if(b){ if(kind==='new'||kind==='work') elsewhere.push({s,b,kind}); continue }
+    let score=0, why='';
+    const lev=[...descendants(s.id)].filter(x=>styleOn(BYID[x])).length;
+    if(kind==='work'){score=55+(70-c)*0.25+(info.days<10?8:0); why=`At ${c}%. ${info.days<1?'You worked on it today':info.days<10?'Keep the momentum from '+ago(info.last):'Last practised '+ago(info.last)}.`}
+    else if(kind==='new'){score=38+Math.min(lev,8)*2.5-Math.max(0,s.d-lvl-0.5)*9; why=lev?`New and unlocked. Leads to ${lev} more skill${lev>1?'s':''}.`:'New and unlocked.'}
+    else if(kind==='review'){score=22+Math.min(info.days,60)/3; why=info.days>21?`Solid before, but last practised ${ago(info.last)}.`:`Confident at ${c}%. A few clean reps will lock it in.`}
+    else {score=5; why=`Solid at ${c}%. Good for warming up.`}
+    if(focus==='new'&&kind==='new') score+=22;
+    if(focus==='consolidate'){ if(kind==='work') score+=14; if(kind==='review') score+=16; if(kind==='new') score-=15 }
+    if(focus==='easy'){ score-=Math.max(0,s.d-lvl)*10; if(kind==='review'||kind==='solid') score+=12 }
+    if(s.st!=='F') score+=4;
+    const n=s.need?s.need.length:0; if(n) score+=6; // this spot has what it needs, make use of it
+    score+=hash(seed+s.id)*10;
+    cands.push({s,kind,score,why});
+  }
+  const items=[];
+  if(offOnly){
+    const offs=cands.filter(x=>x.off).map(x=>({...x,score:offScore(x.s,null,focus,seed)}));
+    offs.sort((a,b)=>b.score-a.score);
+    const n=Math.max(2,Math.min(6,Math.round(mins/10)));
+    const per=Math.max(5,Math.round(mins/n));
+    offs.slice(0,n).forEach(x=>items.push({id:x.s.id,role:'off',mins:per,why:offWhy(x.s)}));
+  }else{
+    const sk=cands.filter(x=>!x.off).sort((a,b)=>b.score-a.score);
+    const warmPool=sk.filter(x=>(x.kind==='solid'||x.kind==='review')&&x.s.d<=Math.max(2,lvl)).sort((a,b)=>a.s.d-b.s.d||b.score-a.score);
+    const warm=warmPool[0]||sk.find(x=>x.s.d<=2)||null;
+    const slots=Math.max(1,Math.min(4,Math.round((mins-15)/15)));
+    const maxNew=focus==='new'?(mins>=60?2:1):(focus==='consolidate'?0:1);
+    const picked=[]; let nNew=0;
+    for(const x of sk){
+      if(picked.length>=slots) break;
+      if(warm&&x.s.id===warm.s.id) continue;
+      if(x.kind==='new'){ if(nNew>=maxNew) continue; nNew++ }
+      if(x.kind==='solid'&&sk.some(y=>y.kind!=='solid'&&!picked.includes(y)&&(!warm||y.s.id!==warm.s.id)&&(y.kind!=='new'||nNew<maxNew))) continue;
+      picked.push(x);
+    }
+    // nothing in progress yet (a new skater): fill the remaining slots with more new skills
+    for(const x of sk){ if(picked.length>=slots) break; if(!picked.includes(x)&&x.kind==='new'&&(!warm||x.s.id!==warm.s.id)) picked.push(x) }
+    const offTime=mins>=30?8:0, warmTime=warm?(mins>=45?8:5):0;
+    const left=Math.max(5,mins-offTime-warmTime);
+    const wsum=picked.reduce((a,x)=>a+(x.kind==='new'?1.4:x.kind==='work'?1.2:0.8),0)||1;
+    if(warm) items.push({id:warm.s.id,role:'warm',mins:warmTime,why:(conf(warm.s.id)>0?'Easy start on something you already have. ':'Easy start to get your legs under you. ')+(warm.s.cues[0]||'')+'.'});
+    picked.forEach(x=>items.push({id:x.s.id,role:x.kind==='new'?'new':x.kind==='work'?'work':'review',mins:Math.max(5,Math.round(left*(x.kind==='new'?1.4:x.kind==='work'?1.2:0.8)/wsum)),why:x.why}));
+    if(offTime){
+      const focusIds=picked.map(x=>x.s.id);
+      const offs=cands.filter(x=>x.off).map(x=>({...x,score:offScore(x.s,focusIds,focus,seed)})).sort((a,b)=>b.score-a.score);
+      if(offs[0]) items.push({id:offs[0].s.id,role:'off',mins:offTime,why:'After skating. '+offWhy(offs[0].s,focusIds)});
+    }
+  }
+  elsewhere.sort((a,b)=>(a.kind==='work'?0:1)-(b.kind==='work'?0:1)||a.s.d-b.s.d);
+  return {items,elsewhere:elsewhere.slice(0,5),offOnly};
+}
+function offScore(s,focusIds,focus,seed){
+  const c=conf(s.id); let sc=20-c/10;
+  const sup=s.sup||[];
+  if(focusIds) sc+=sup.filter(t=>focusIds.includes(t)).length*30;
+  // favour exercises that support what you're currently learning
+  sc+=sup.filter(t=>{const k=conf(t);return k>0&&k<70}).length*8;
+  sc+=sup.filter(t=>conf(t)===0&&BYID[t]&&unlocked(BYID[t])&&styleOn(BYID[t])).length*3;
+  if(focus==='easy') sc-=s.d*4;
+  return sc+hash(seed+s.id)*8;
+}
+function offWhy(s,focusIds){
+  const sup=(s.sup||[]).filter(t=>styleOn(BYID[t]));
+  const pri=focusIds?sup.filter(t=>focusIds.includes(t)):[];
+  const list=(pri.length?pri:sup.filter(t=>{const k=conf(t);return k>0&&k<70})).concat(sup).filter((v,i,a)=>a.indexOf(v)===i).slice(0,2);
+  return list.length?`Builds strength for ${list.map(t=>BYID[t].n).join(' and ')}.`:s.desc;
+}
+function ago(ts){const d=Math.floor((Date.now()-new Date(ts).getTime())/DAY);return d<=0?'today':d===1?'yesterday':d<14?d+' days ago':d<60?Math.round(d/7)+' weeks ago':Math.round(d/30)+' months ago'}
+function ctxKey(){const c=state.profile.ctx;return [c.skate,c.spot,c.minutes,c.focus,state.profile.styles.join('')].join('|')}
+function getPlan(){
+  const today=new Date().toISOString().slice(0,10), key=ctxKey();
+  if(planCache&&planCache.key===key&&planCache.day===today) return planCache;
+  const saved=lsGet(LS_PLAN);
+  if(!planCache&&saved&&saved.key===key&&saved.day===today){planCache=saved;return planCache}
+  const seed=today+(planCache&&planCache.key===key?planCache.seed.length:0);
+  planCache={key,day:today,seed,...buildPlan(seed),done:{}};
+  lsSet(LS_PLAN,planCache);
+  return planCache;
+}
+function reshuffle(){
+  const key=ctxKey(), today=new Date().toISOString().slice(0,10), seed=today+'#'+uid6();
+  planCache={key,day:today,seed,...buildPlan(seed),done:{}}; lsSet(LS_PLAN,planCache); render();
+}
+
+/* ---------------- Rendering ---------------- */
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let tab='today', mapView='map', mapStyle='mine', zoom=1, selected=null, pendingDelete=null;
+try{const t=sessionStorage.getItem('sm.tab');if(t)tab=t}catch(e){}
+
+function render(){
+  computeConf();
+  document.querySelectorAll('nav.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===tab?'true':'false'));
+  const m=document.getElementById('main');
+  m.innerHTML=tab==='today'?viewToday():tab==='map'?viewMap():tab==='log'?viewLog():viewGear();
+  if(tab==='map'&&mapView==='map') drawMap();
+  renderDrawer();
+}
+
+function viewToday(){
+  const p=state.profile, c=p.ctx, plan=getPlan(), skate=curSkate(), spot=curSpot();
+  const opt=(arr,val)=>arr.map(([v,l])=>`<option value="${esc(v)}"${String(v)===String(val)?' selected':''}>${esc(l)}</option>`).join('');
+  const notes=[];
+  if(skate&&skate.wheels==='indoor'&&(spot.surface==='rough'||spot.surface==='park')) notes.push('Hard indoor wheels will feel skittish here. Keep to the smoothest patches.');
+  if(skate&&skate.wheels==='outdoor'&&spot.surface==='rink') notes.push('Soft outdoor wheels grip a lot indoors, so slides and spins will feel sticky.');
+  const anyLogs=state.logs.length>0;
+  const items=plan.items.map((it,i)=>{
+    const s=BYID[it.id], done=plan.done[i];
+    const roleName={warm:'Warm-up',work:'Keep building',new:'New skill',review:'Review',off:'Off-skate'}[it.role];
+    return `<article class="item">
+      <div class="slot"><b>${it.mins}</b><span>min</span></div>
+      <div class="role ${it.role}">${roleName}${s.st!=='O'?' · '+esc(STYLES[s.st].n):''}</div>
+      <div class="lvl">${pill(s.id)}</div>
+      <button class="name" data-open="${s.id}">${esc(s.n)}</button>
+      <p class="why" style="grid-column:2/span 2">${esc(it.why)}</p>
+      <ul style="grid-column:2/span 2">${s.cues.slice(0,2).map(q=>`<li>${esc(q)}</li>`).join('')}</ul>
+      <div class="rate">${done?`<span class="logged">Logged: ${RATINGS[done.r]}</span> <button data-undo="${i}">Undo</button>`:
+        `<span class="lbl">How did it go?</span>${[1,2,3,4,5].map(r=>`<button data-rate="${r}" data-item="${i}" title="${RATING_HELP[r]}">${RATINGS[r]}</button>`).join('')}`}</div>
+    </article>`}).join('');
+  const nearly=SKILLS.filter(s=>styleOn(s)&&s.st!=='O'&&!unlocked(s)&&conf(s.id)===0&&s.req.filter(r=>conf(r)<UNLOCK).length===1)
+    .map(s=>({s,r:s.req.find(r=>conf(r)<UNLOCK)})).filter(x=>conf(x.r)>0).slice(0,5);
+  return `<div class="stack">
+    ${p.examples&&!anyLogs?`<div class="banner"><p><b>Start by setting yourself up.</b> The skates and spots below are examples. Edit them to match yours, then mark the skills you already have so recommendations start at your level.</p>
+      <div class="row"><button class="btn primary" data-goto="map" data-list="1">Mark skills I have</button><button class="btn" data-goto="gear">Edit skates &amp; spots</button></div></div>`:''}
+    <section class="panel">
+      <div class="ctx">
+        <label class="field" for="cSkate">Skates<select id="cSkate" data-ctx="skate">${opt([...p.skates.map(k=>[k.id,k.name]),['none','No skates (off-skate)']],c.skate)}</select></label>
+        <label class="field" for="cSpot">Spot<select id="cSpot" data-ctx="spot">${opt(p.spots.map(k=>[k.id,k.name]),c.spot)}</select></label>
+        <label class="field" for="cMin">Time<select id="cMin" data-ctx="minutes">${opt([[20,'20 min'],[30,'30 min'],[45,'45 min'],[60,'1 hour'],[90,'1½ hours'],[120,'2 hours']],c.minutes)}</select></label>
+        <label class="field" for="cFocus">Focus<select id="cFocus" data-ctx="focus">${opt([['balanced','Balanced'],['new','Learn something new'],['consolidate','Build consistency'],['easy','Easy day']],c.focus)}</select></label>
+      </div>
+      ${[skate,spot].some(k=>k&&k.photo&&state.photos[k.photo])?`<div class="row ctx-photos">${[skate,spot].filter(k=>k&&k.photo&&state.photos[k.photo]).map(k=>`<img src="${state.photos[k.photo]}" alt="${esc(k.name)}">`).join('')}</div>`:''}
+      <p class="ctx-note">${esc(spotSummary(skate,spot))}${notes.length?' '+esc(notes.join(' ')):''}</p>
+    </section>
+    <div class="row" style="justify-content:space-between">
+      <h2>${plan.offOnly?'Off-skate session':'Today’s session'} <span class="muted mono" style="font-size:14px">${plan.items.reduce((a,x)=>a+x.mins,0)} min</span></h2>
+      <button class="btn sm" data-act="shuffle">Suggest different skills</button>
+    </div>
+    <div class="plan">${items||`<div class="panel empty">Nothing fits this combination. Try another spot, or turn on more styles under Skates, spots &amp; styles.</div>`}</div>
+    <div class="two">
+      ${plan.elsewhere.length?`<section class="panel"><h3>Not possible here</h3><div class="hint-list">${plan.elsewhere.map(x=>`<div><button data-open="${x.s.id}">${esc(x.s.n)}</button> <span class="muted small">${esc(x.b)}</span></div>`).join('')}</div></section>`:''}
+      ${nearly.length?`<section class="panel"><h3>Almost unlocked</h3><div class="hint-list">${nearly.map(x=>`<div><button data-open="${x.s.id}">${esc(x.s.n)}</button> <span class="muted small">get ${esc(BYID[x.r].n)} to Developing</span></div>`).join('')}</div></section>`:''}
+    </div>
+  </div>`;
+}
+function spotSummary(skate,spot){
+  const f=spot.features.map(x=>FEAT[x]?FEAT[x].n.toLowerCase():x);
+  const sk=skate?`${skate.type==='inline'?'Inline':'Quad'}, ${skate.brake==='heel'?'heel brake':skate.brake==='toe'?'toe stops':'no brake'}${skate.grind?', grind-ready':''}`:'Off skates';
+  return `${sk} at ${SURF[spot.surface].toLowerCase()}${f.length?' with '+f.join(', '):''}.`;
+}
+
+/* ----- Skill map ----- */
+function visibleSet(){
+  const base=SKILLS.filter(s=>mapStyle==='all'?true:mapStyle==='mine'?styleOn(s):s.st===mapStyle);
+  const set=new Set(base.map(s=>s.id)), anc=new Set();
+  const up=id=>BYID[id].req.forEach(r=>{if(!set.has(r)&&!anc.has(r)){anc.add(r)}up(r)});
+  base.forEach(s=>up(s.id));
+  return {ids:[...set,...anc],faded:anc};
+}
+function viewMap(){
+  const chips=[['mine','My styles'],['all','Everything'],...Object.entries(STYLES).map(([k,v])=>[k,v.n])];
+  const head=`<div class="row" style="justify-content:space-between"><h2>Skill map</h2>
+    <div class="row"><button class="chip" aria-pressed="${mapView==='map'}" data-mapview="map">Map</button><button class="chip" aria-pressed="${mapView==='list'}" data-mapview="list">List &amp; set levels</button></div></div>
+    <div class="maptools">${chips.map(([k,l])=>`<button class="chip" aria-pressed="${mapStyle===k}" data-mapstyle="${k}">${esc(l)}</button>`).join('')}</div>`;
+  if(mapView==='list') return `<div class="stack">${head}${viewList()}</div>`;
+  return `<div class="stack">${head}
+    <div class="row" style="justify-content:space-between">
+      <div class="legend"><span><i style="border-color:var(--line);border-style:dashed"></i>Locked</span><span><i style="border-color:var(--accent)"></i>Ready to start</span>
+      <span><i style="border-color:var(--lv-learn);background:var(--lv-learn-bg)"></i>Learning</span><span><i style="border-color:var(--lv-dev);background:var(--lv-dev-bg)"></i>Developing</span>
+      <span><i style="border-color:var(--lv-conf);background:var(--lv-conf-bg)"></i>Confident</span><span><i style="border-color:var(--lv-solid);background:var(--lv-solid-bg)"></i>Solid</span></div>
+      <div class="row"><button class="btn sm" data-zoom="-1" aria-label="Zoom out">−</button><button class="btn sm" data-zoom="1" aria-label="Zoom in">+</button></div>
+    </div>
+    <div class="mapbox" id="mapbox"></div>
+    <p class="muted small">Left to right is progression: a skill unlocks once everything feeding into it reaches Developing (${UNLOCK}%). Faded skills belong to other styles but are needed here. Skills your current skates or spot can’t support are dimmed.</p>
+  </div>`;
+}
+function drawMap(){
+  const {ids,faded}=visibleSet(), vis=new Set(ids);
+  const depth={};
+  const dep=id=>{if(depth[id]!=null)return depth[id];const r=BYID[id].req.filter(x=>vis.has(x));return depth[id]=r.length?1+Math.max(...r.map(dep)):0};
+  ids.forEach(dep);
+  const cols=[]; ids.forEach(id=>{(cols[depth[id]]=cols[depth[id]]||[]).push(id)});
+  const order=Object.keys(STYLES), pos={};
+  const W=178,H=50,GX=58,GY=12,PX=20,PY=34;
+  cols.forEach((col,ci)=>{
+    col.sort((a,b)=>{
+      const bc=id=>{const r=BYID[id].req.filter(x=>pos[x]!=null);return r.length?r.reduce((s,x)=>s+pos[x].y,0)/r.length:order.indexOf(BYID[id].st)*1000};
+      return bc(a)-bc(b)||order.indexOf(BYID[a].st)-order.indexOf(BYID[b].st)||BYID[a].d-BYID[b].d;
+    });
+    col.forEach((id,ri)=>{pos[id]={x:PX+ci*(W+GX),y:PY+ri*(H+GY)}});
+  });
+  const width=PX*2+cols.length*(W+GX)-GX, height=PY+Math.max(...cols.map(c=>c.length))*(H+GY)+10;
+  const skate=curSkate(), spot=curSpot();
+  let rel=null;
+  if(selected&&vis.has(selected)){rel=new Set([selected]);const up=id=>BYID[id].req.forEach(r=>{rel.add(r);up(r)});up(selected);descendants(selected).forEach(x=>rel.add(x))}
+  let edges='', nodes='';
+  ids.forEach(id=>BYID[id].req.filter(r=>vis.has(r)).forEach(r=>{
+    const a=pos[r],b=pos[id], x1=a.x+W,y1=a.y+H/2,x2=b.x,y2=b.y+H/2, on=rel&&rel.has(id)&&rel.has(r);
+    edges+=`<path class="edge${on?' on':rel?' dim':''}" d="M${x1} ${y1} C${x1+GX/2} ${y1},${x2-GX/2} ${y2},${x2} ${y2}"/>`;
+  }));
+  ids.forEach(id=>{
+    const s=BYID[id],p=pos[id],c=conf(id),lv=levelOf(c),ul=unlocked(s);
+    const cls=['node',c>0?'l'+lv:ul?'ready':'locked'];
+    if(faded.has(id))cls.push('faded'); if(blocker(s,skate,spot)&&s.st!=='O')cls.push('ctxblock');
+    if(rel&&!rel.has(id))cls.push('dim'); if(selected===id)cls.push('sel');
+    const name=s.n.length>24?s.n.slice(0,23)+'…':s.n;
+    nodes+=`<g class="${cls.join(' ')}" data-open="${id}" tabindex="0" role="button" aria-label="${esc(s.n)}">
+      <rect class="bg" x="${p.x}" y="${p.y}" width="${W}" height="${H}" rx="8"/>
+      <text x="${p.x+10}" y="${p.y+19}">${esc(name)}</text>
+      <text class="sub" x="${p.x+10}" y="${p.y+35}">${esc(STYLES[s.st].n)} · ${dots(s.d)}</text>
+      ${c>0?`<rect class="bar-bg" x="${p.x+10}" y="${p.y+41}" width="${W-20}" height="3" rx="1.5"/><rect class="bar" x="${p.x+10}" y="${p.y+41}" width="${(W-20)*c/100}" height="3" rx="1.5"/>`:''}
+    </g>`;
+  });
+  const heads=cols.map((_,ci)=>`<text class="colhead" x="${PX+ci*(W+GX)}" y="20">STEP ${ci+1}</text>`).join('');
+  const box=document.getElementById('mapbox');
+  box.innerHTML=`<svg width="${width*zoom}" height="${height*zoom}" viewBox="0 0 ${width} ${height}" role="img" aria-label="Skill progression graph">${heads}${edges}${nodes}</svg>`;
+}
+function viewList(){
+  const {ids}=visibleSet(); const set=new Set(ids);
+  return Object.entries(STYLES).map(([k,v])=>{
+    const list=SKILLS.filter(s=>s.st===k&&set.has(s.id)); if(!list.length) return '';
+    return `<section class="panel"><h3 style="margin-bottom:4px">${esc(v.n)}</h3><div class="slist">${list.map(s=>{
+      const lv=levelOf(conf(s.id));
+      return `<div class="srow"><button class="nm" data-open="${s.id}">${esc(s.n)}</button><span class="dots" title="Difficulty">${dots(s.d)}</span>
+      <select data-baseline="${s.id}" aria-label="Level for ${esc(s.n)}">${LEVELS.map((L,i)=>`<option value="${i}"${i===lv?' selected':''}>${L.n}</option>`).join('')}</select></div>`}).join('')}</div></section>`;
+  }).join('')+`<p class="muted small">Setting a level here records it as a starting point. Logging practice adjusts it from there.</p>`;
+}
+
+/* ----- Drawer ----- */
+function renderDrawer(){
+  const host=document.getElementById('drawerHost');
+  if(!selected){host.innerHTML='';return}
+  const s=BYID[selected], c=conf(s.id), lv=levelOf(c), info=CONF[s.id];
+  const skate=curSkate(), spot=curSpot(), b=blocker(s,skate,spot);
+  const link=id=>`<button data-open="${id}"><span>${esc(BYID[id].n)}</span>${pill(id)}</button>`;
+  const kids=(CHILDREN[s.id]||[]);
+  const sup=SUPPORTED_BY[s.id]||[];
+  const needs=[...(s.eq||[]).map(e=>EQ[e]),...(s.need||[]).map(n=>n.split('|').map(f=>FEAT[f].a).join(' or ')),s.smooth?'smooth ground':null].filter(Boolean);
+  const logs=state.logs.filter(l=>l.skill===s.id).sort((a,b)=>a.ts<b.ts?1:-1).slice(0,6);
+  host.innerHTML=`<div class="scrim" data-close="1"></div><aside class="drawer" role="dialog" aria-label="${esc(s.n)}">
+    <button class="x" data-close="1" aria-label="Close">×</button>
+    <div class="stack" style="gap:8px">
+      <div class="role off">${esc(STYLES[s.st].n)} · difficulty <span class="mono">${dots(s.d)}</span></div>
+      <h2>${esc(s.n)}</h2>
+      <div class="row">${pill(s.id)}${info?`<span class="muted small">${info.sessions?info.sessions+' session'+(info.sessions===1?'':'s')+' · last '+ago(info.last):'Starting level set '+ago(info.last)}</span>`:''}</div>
+      ${c>0?`<div class="meter"><i style="width:${c}%;background:var(--lv-${['new','learn','dev','conf','solid'][lv]})"></i></div>`:''}
+    </div>
+    <p>${esc(s.desc)}</p>
+    <div><h3>Cues</h3><ul>${s.cues.map(q=>`<li>${esc(q)}</li>`).join('')}</ul></div>
+    ${needs.length?`<p class="small"><b>Needs:</b> ${esc(needs.join(', '))}.${b?` <span style="color:var(--danger)">Not possible with today’s setup (${esc(b)}).</span>`:''}</p>`:''}
+    <div class="stack" style="gap:8px"><h3>Log practice</h3>
+      <input type="text" id="logNote" placeholder="Note (optional): what clicked, what to fix">
+      <div class="rate" style="margin:0">${[1,2,3,4,5].map(r=>`<button data-logskill="${s.id}" data-r="${r}" title="${RATING_HELP[r]}">${RATINGS[r]}</button>`).join('')}</div>
+      <label class="field" for="baseSel" style="margin-top:6px">Or set level directly<select id="baseSel" data-baseline="${s.id}">${LEVELS.map((L,i)=>`<option value="${i}"${i===lv?' selected':''}>${L.n}</option>`).join('')}</select></label>
+    </div>
+    ${s.req.length?`<div class="stack" style="gap:8px"><h3>Builds on</h3><div class="linklist">${s.req.map(link).join('')}</div></div>`:''}
+    ${kids.length?`<div class="stack" style="gap:8px"><h3>Opens up</h3><div class="linklist">${kids.map(link).join('')}</div></div>`:''}
+    ${s.sup?`<div class="stack" style="gap:8px"><h3>Helps with</h3><div class="linklist">${s.sup.map(link).join('')}</div></div>`:''}
+    ${sup.length?`<div class="stack" style="gap:8px"><h3>Off-skate training</h3><div class="linklist">${sup.map(link).join('')}</div></div>`:''}
+    ${logs.length?`<div class="stack" style="gap:8px"><h3>Recent</h3><div class="hist">${logs.map(l=>`<div><span>${l.base!=null?'Set to '+LEVELS[BASELINE_CONF.indexOf(l.base)]?.n:RATINGS[l.r]}${l.note?' · <span class="muted">'+esc(l.note)+'</span>':''}</span><span class="muted mono">${fmtDate(l.ts)}</span></div>`).join('')}</div></div>`:''}
+  </aside>`;
+}
+function fmtDate(ts){return new Date(ts).toLocaleDateString(undefined,{month:'short',day:'numeric'})}
+
+/* ----- Log ----- */
+function viewLog(){
+  const practice=state.logs.filter(l=>l.base==null);
+  const days=new Set(practice.map(l=>l.ts.slice(0,10)));
+  const confident=SKILLS.filter(s=>conf(s.id)>=70).length;
+  const inprog=SKILLS.filter(s=>{const c=conf(s.id);return c>0&&c<70}).length;
+  const groups={}; [...state.logs].sort((a,b)=>a.ts<b.ts?1:-1).forEach(l=>{const d=l.ts.slice(0,10);(groups[d]=groups[d]||[]).push(l)});
+  const name=(arr,id)=>{const x=arr.find(k=>k.id===id);return x?x.name:null};
+  const styleRows=Object.entries(STYLES).filter(([k])=>k==='F'||state.profile.styles.includes(k)).map(([k,v])=>{
+    const list=SKILLS.filter(s=>s.st===k), n=list.length;
+    const cnt=[0,0,0,0,0]; list.forEach(s=>cnt[levelOf(conf(s.id))]++);
+    return `<div class="srow" style="grid-template-columns:minmax(0,1fr) auto"><span><b>${esc(v.n)}</b></span><span class="small muted mono">${cnt[4]+cnt[3]} confident · ${cnt[1]+cnt[2]} in progress · ${n} total</span></div>`;
+  }).join('');
+  return `<div class="stack">
+    <h2>Progress log</h2>
+    <div class="stats">
+      <div class="panel stat"><b>${days.size}</b><span>Practice days</span></div>
+      <div class="panel stat"><b>${practice.length}</b><span>Skills logged</span></div>
+      <div class="panel stat"><b>${confident}</b><span>Confident or solid</span></div>
+      <div class="panel stat"><b>${inprog}</b><span>In progress</span></div>
+    </div>
+    <section class="panel"><h3>By style</h3><div class="slist">${styleRows}</div></section>
+    <section class="panel stack">
+      ${Object.keys(groups).length?Object.entries(groups).map(([d,ls])=>`<div class="day"><h3>${new Date(d+'T12:00').toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric',year:'numeric'})}</h3>
+        ${ls.map(l=>{const s=BYID[l.skill]; if(!s) return '';
+          const where=[name(state.profile.skates,l.skate),name(state.profile.spots,l.spot)].filter(Boolean).join(' at ');
+          return `<div class="entry"><div><button class="nm" style="background:none;border:0;padding:0;font-weight:700;color:var(--ink)" data-open="${s.id}">${esc(s.n)}</button>
+            <div class="meta">${l.base!=null?'Starting level: '+esc(LEVELS[BASELINE_CONF.indexOf(l.base)]?.n||''):esc(RATINGS[l.r])}${where?' · '+esc(where):''}</div></div>
+            <div>${pendingDelete===l.id?`<button class="btn sm danger" data-del="${l.id}">Delete</button> <button class="btn sm ghost" data-delcancel="1">Keep</button>`:`<button class="btn sm ghost" data-delask="${l.id}" aria-label="Remove entry">Remove</button>`}</div>
+            ${l.note?`<div class="note">${esc(l.note)}</div>`:''}</div>`}).join('')}</div>`).join(''):
+        `<div class="empty">No practice logged yet. Rate a skill from today’s session, or open any skill on the map and log it.</div>`}
+    </section>
+  </div>`;
+}
+
+/* ----- Gear ----- */
+function viewGear(){
+  const p=state.profile;
+  const sel=(attr,id,val,opts)=>`<select data-${attr}="${id}" data-key="${opts.key}">${opts.list.map(([v,l])=>`<option value="${v}"${v===val?' selected':''}>${esc(l)}</option>`).join('')}</select>`;
+  return `<div class="stack">
+    <section class="stack"><h2>Styles</h2>
+      <p class="muted">Pick what you want to grow in. Foundations are always included.</p>
+      <div class="row">${Object.entries(STYLES).filter(([k])=>k!=='F').map(([k,v])=>`<button class="chip" aria-pressed="${p.styles.includes(k)}" data-style="${k}">${esc(v.n)}</button>`).join('')}</div>
+    </section>
+    <section class="stack"><div class="row" style="justify-content:space-between"><h2>My skates</h2><button class="btn sm" data-act="addSkate">Add skates</button></div>
+      <div class="cards">${p.skates.map(k=>`<div class="card">
+        ${photoBlock('skate',k)}
+        <input type="text" id="skn-${k.id}" value="${esc(k.name)}" data-skname="${k.id}" aria-label="Skate name">
+        <div class="ctx" style="grid-template-columns:1fr 1fr">
+          <label class="field">Type${sel('sk',k.id,k.type,{key:'type',list:[['inline','Inline'],['quad','Quad']]})}</label>
+          <label class="field">Brake${sel('sk',k.id,k.brake,{key:'brake',list:[['heel','Heel brake'],['toe','Toe stops'],['none','None']]})}</label>
+          <label class="field">Wheels${sel('sk',k.id,k.wheels,{key:'wheels',list:[['indoor','Hard / indoor'],['outdoor','Soft / outdoor'],['park','Park / aggressive']]})}</label>
+          <label class="field">Grinding${sel('sk',k.id,k.grind?'1':'0',{key:'grind',list:[['0','Not set up'],['1','Grind-ready']]})}</label>
+        </div>
+        <div class="row"><button class="btn sm ghost danger" data-rmskate="${k.id}">Remove</button></div></div>`).join('')}</div>
+    </section>
+    <section class="stack"><div class="row" style="justify-content:space-between"><h2>My spots</h2><button class="btn sm" data-act="addSpot">Add spot</button></div>
+      <div class="cards">${p.spots.map(k=>`<div class="card">
+        ${photoBlock('spot',k)}
+        <input type="text" id="spn-${k.id}" value="${esc(k.name)}" data-spname="${k.id}" aria-label="Spot name">
+        <label class="field">Surface${sel('sp',k.id,k.surface,{key:'surface',list:Object.entries(SURF)})}</label>
+        ${k.surface==='home'?'<p class="muted small">Off-skate exercises only.</p>':`<div class="checks">${Object.entries(FEAT).map(([f,v])=>`<label><input type="checkbox" data-feat="${f}" data-spot="${k.id}"${k.features.includes(f)?' checked':''}>${esc(v.n)}</label>`).join('')}</div>`}
+        <div class="row"><button class="btn sm ghost danger" data-rmspot="${k.id}">Remove</button></div></div>`).join('')}</div>
+    </section>
+    <section class="panel stack"><h3>Your data</h3>
+      <p class="small">${backend==='cloud'?'Your progress is saved to your account and follows you to other devices.':'Your progress is saved in this browser only. Export a backup if you switch devices.'} The backup is a plain file with your log, skates, spots and photos, and you can import it into any copy of this app.</p>
+      <div class="row"><button class="btn sm" data-act="export">Export backup</button>
+      <label class="btn sm" for="importFile" style="display:inline-block">Import backup</label><input type="file" id="importFile" accept="application/json,.json" hidden>
+      ${pendingDelete==='ALL'?`<button class="btn sm danger" data-act="resetYes">Erase everything</button><button class="btn sm ghost" data-delcancel="1">Cancel</button>`:`<button class="btn sm ghost danger" data-act="resetAsk">Start over</button>`}</div>
+    </section>
+  </div>`;
+}
+
+/* ---------------- Events ---------------- */
+function toast(t){const h=document.getElementById('toastHost');h.innerHTML=`<div class="toast" role="status">${esc(t)}</div>`;clearTimeout(toast.t);toast.t=setTimeout(()=>h.innerHTML='',2600)}
+function touchProfile(){state.profile.examples=false;saveProfile()}
+async function logRating(skill,r,note){
+  const c=state.profile.ctx;
+  const log={id:uid6(),ts:new Date().toISOString(),skill,r,skate:c.skate,spot:c.spot}; if(note) log.note=note;
+  const before=levelOf(conf(skill)), wasLocked=(CHILDREN[skill]||[]).filter(k=>!unlocked(BYID[k]));
+  await saveLog(log); computeConf();
+  const after=levelOf(conf(skill)), opened=wasLocked.filter(k=>unlocked(BYID[k]));
+  toast(opened.length?`Unlocked: ${opened.map(k=>BYID[k].n).join(', ')}`:after>before?`${BYID[skill].n} is now ${LEVELS[after].n}`:`Logged ${BYID[skill].n}`);
+  return log;
+}
+async function setBaseline(skill,lv){
+  const c=state.profile.ctx;
+  await saveLog({id:uid6(),ts:new Date().toISOString(),skill,base:BASELINE_CONF[lv],skate:c.skate,spot:c.spot});
+  state.profile.examples=false; saveProfile();
+  render();
+}
+document.addEventListener('click',async e=>{
+  const t=e.target.closest('button,[data-open],[data-close]'); if(!t) return;
+  const d=t.dataset;
+  if(d.tab){tab=d.tab;selected=null;try{sessionStorage.setItem('sm.tab',tab)}catch(_){};render();window.scrollTo(0,0);return}
+  if(d.goto){tab=d.goto;if(d.list)mapView='list';render();return}
+  if(d.close){selected=null;render();return}
+  if(d.open){selected=d.open;render();return}
+  if(d.rate){
+    const i=+d.item, it=planCache.items[i];
+    const log=await logRating(it.id,+d.rate);
+    planCache.done[i]={r:+d.rate,log:log.id}; lsSet(LS_PLAN,planCache); render(); return}
+  if(d.undo){const i=+d.undo, dn=planCache.done[i]; if(dn){await removeLog(dn.log);delete planCache.done[i];lsSet(LS_PLAN,planCache);render()} return}
+  if(d.logskill){const note=(document.getElementById('logNote')||{}).value||''; await logRating(d.logskill,+d.r,note.trim()); render(); return}
+  if(d.act==='shuffle'){reshuffle();return}
+  if(d.mapview){mapView=d.mapview;render();return}
+  if(d.mapstyle){mapStyle=d.mapstyle;render();return}
+  if(d.zoom){zoom=Math.min(1.6,Math.max(0.5,zoom+(+d.zoom)*0.15));drawMap();return}
+  if(d.style){const s=state.profile.styles;const i=s.indexOf(d.style);i>=0?s.splice(i,1):s.push(d.style);touchProfile();render();return}
+  if(d.act==='addSkate'){const id='sk'+uid6();state.profile.skates.push({id,name:'New skates',type:'inline',brake:'heel',grind:false,wheels:'outdoor'});touchProfile();render();return}
+  if(d.act==='addSpot'){const id='sp'+uid6();state.profile.spots.push({id,name:'New spot',surface:'smooth',features:['space']});touchProfile();render();return}
+  if(d.rmphoto){const list=d.rmphoto==='skate'?state.profile.skates:state.profile.spots, k=list.find(x=>x.id===d.owner); await dropPhoto(k.photo); delete k.photo; touchProfile(); render(); return}
+  if(d.rmskate){const p=state.profile;dropPhoto((p.skates.find(k=>k.id===d.rmskate)||{}).photo);p.skates=p.skates.filter(k=>k.id!==d.rmskate);if(p.ctx.skate===d.rmskate)p.ctx.skate=p.skates[0]?p.skates[0].id:'none';touchProfile();render();return}
+  if(d.rmspot){const p=state.profile;if(p.spots.length<=1){toast('Keep at least one spot.');return}dropPhoto((p.spots.find(k=>k.id===d.rmspot)||{}).photo);p.spots=p.spots.filter(k=>k.id!==d.rmspot);if(p.ctx.spot===d.rmspot)p.ctx.spot=p.spots[0].id;touchProfile();render();return}
+  if(d.delask){pendingDelete=d.delask;render();return}
+  if(d.delcancel){pendingDelete=null;render();return}
+  if(d.del){pendingDelete=null;await removeLog(d.del);toast('Entry removed');render();return}
+  if(d.act==='resetAsk'){pendingDelete='ALL';render();return}
+  if(d.act==='resetYes'){
+    const ids=state.logs.map(l=>l.id); const phIds=Object.keys(state.photos); state={profile:defaultProfile(),logs:[],photos:{}}; pendingDelete=null; planCache=null; saveLocal(); saveProfile();
+    if(backend==='cloud'){for(const id of ids){try{await logsCol.doc(id).delete()}catch(_){}}for(const id of phIds){try{await photosCol.doc(id).delete()}catch(_){}}}
+    toast('Everything erased');render();return}
+  if(d.act==='export'){
+    const data=JSON.stringify({app:'skating-mentor',exported:new Date().toISOString(),...state},null,2);
+    try{const dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;
+      if(!dl) throw 0; await dl.save({filename:'skating-mentor-backup.json',data}); toast('Backup saved')}
+    catch(err){ if(err&&err.code==='declined') return;
+      try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:'application/json'}));a.download='skating-mentor-backup-'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click();a.remove();toast('Backup downloaded')}
+      catch(_){try{await navigator.clipboard.writeText(data);toast('Backup copied to clipboard')}catch(__){toast('Export isn\u2019t available here')}}}
+    return}
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&selected){selected=null;render()}
+  if((e.key==='Enter'||e.key===' ')&&e.target.matches('g[data-open]')){e.preventDefault();selected=e.target.dataset.open;render()}
+});
+document.addEventListener('change',async e=>{
+  const t=e.target, d=t.dataset;
+  if(d.ctx){state.profile.ctx[d.ctx]=d.ctx==='minutes'?+t.value:t.value;saveProfile();render();return}
+  if(d.baseline){await setBaseline(d.baseline,+t.value);toast(`${BYID[d.baseline].n}: ${LEVELS[+t.value].n}`);return}
+  if(d.sk){const k=state.profile.skates.find(x=>x.id===d.sk);k[d.key]=d.key==='grind'?t.value==='1':t.value;touchProfile();render();return}
+  if(d.sp){const k=state.profile.spots.find(x=>x.id===d.sp);k[d.key]=t.value;touchProfile();render();return}
+  if(d.feat){const k=state.profile.spots.find(x=>x.id===d.spot);const i=k.features.indexOf(d.feat);t.checked?(i<0&&k.features.push(d.feat)):(i>=0&&k.features.splice(i,1));touchProfile();return}
+  if(d.photo&&t.files[0]){
+    const list=d.photo==='skate'?state.profile.skates:state.profile.spots, k=list.find(x=>x.id===d.owner);
+    try{const data=await shrinkImage(t.files[0]); const old=k.photo; k.photo='ph'+uid6(); await savePhoto(k.photo,data); await dropPhoto(old); touchProfile(); render(); toast('Photo saved')}
+    catch(_){toast('That file couldn\u2019t be read as an image.')}
+    return}
+  if(t.id==='importFile'&&t.files[0]){
+    try{const j=JSON.parse(await t.files[0].text()); if(!j.profile||!Array.isArray(j.logs)) throw 0;
+      const have=new Set(state.logs.map(l=>l.id)); const add=j.logs.filter(l=>l&&l.id&&l.skill&&!have.has(l.id));
+      state.profile=Object.assign(defaultProfile(),j.profile);
+      for(const [k,v] of Object.entries(j.photos||{})){if(typeof v==='string'&&v.startsWith('data:image/'))await savePhoto(k,v)}
+      saveProfile();
+      for(const l of add) await saveLog(l);
+      planCache=null; toast(`Imported ${add.length} entries`); render();
+    }catch(_){toast('That file isn’t a Skating Mentor backup.')}
+  }
+});
+document.addEventListener('input',e=>{
+  const d=e.target.dataset;
+  if(d.skname){state.profile.skates.find(x=>x.id===d.skname).name=e.target.value;touchProfile()}
+  if(d.spname){state.profile.spots.find(x=>x.id===d.spname).name=e.target.value;touchProfile()}
+});
+
+render();
+setSaveState(backend==='cloud'?'Saved to your account':'Connecting…');
+initCloud();
+</script>
+
+</body>
+</html>
