@@ -14,6 +14,8 @@ It runs in any modern browser on phone or desktop, with no sign-up. To get start
 
 Your progress stays in your browser. On a phone, use *Add to Home Screen* to open it like an app. Google Drive sync is optional; while the app's Google sign-in is in testing mode, it only works for Google accounts the owner has added as test users.
 
+## What it does
+
 - **Styles:** Foundations, Cruising & fitness, Park, Street, Dance & artistic, Slalom & freestyle, and Off-skate training.
 - **Gear and spots:** skates (inline/quad, brake, wheels, grind-ready) and spots (surface plus features like curbs, ramps, cones) decide what's practical today.
 - **Tracking:** rate each attempt from "Not yet" to "On demand"; confidence builds over repeated sessions and fades slowly without practice. A skill unlocks once its prerequisites reach Developing.
