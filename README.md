@@ -2,6 +2,18 @@
 
 A browser-based skating coach. Tell it which skates you're on and where you are, and it plans a practice session, tracks how confident you are in each skill, and shows a skill map of what each skill opens up next.
 
+## Try it
+
+**[Open Skating Mentor → petravanta.github.io/skating-mentor](https://petravanta.github.io/skating-mentor/)**
+
+It runs in any modern browser on phone or desktop, with no sign-up. To get started:
+
+1. Go to **Skates, spots & styles** and edit the example skates and spots to match yours, and pick the styles you care about.
+2. Open **Skill map → List & set levels** and mark the skills you already have, so suggestions start at your level.
+3. On **Today**, choose your skates, spot, time and focus. After each drill, tap how it went.
+
+Your progress stays in your browser. On a phone, use *Add to Home Screen* to open it like an app. Google Drive sync is optional; while the app's Google sign-in is in testing mode, it only works for Google accounts the owner has added as test users.
+
 - **Styles:** Foundations, Cruising & fitness, Park, Street, Dance & artistic, Slalom & freestyle, and Off-skate training.
 - **Gear and spots:** skates (inline/quad, brake, wheels, grind-ready) and spots (surface plus features like curbs, ramps, cones) decide what's practical today.
 - **Tracking:** rate each attempt from "Not yet" to "On demand"; confidence builds over repeated sessions and fades slowly without practice. A skill unlocks once its prerequisites reach Developing.
