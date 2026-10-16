@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Skills",
+  "description": "The skill graph. Each entry is one skill; requires links it to the skills you learn first. Entries are grouped by style in the file.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["id", "name", "style", "difficulty", "requires", "description", "cues"],
+    "properties": {
+      "id": {"type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$", "description": "Stable short id. Practice logs refer to it, so never change or reuse one that has shipped."},
+      "name": {"type": "string", "minLength": 2, "description": "Name shown in the app."},
+      "style": {
+        "enum": ["foundations", "cruising", "park", "street", "dance", "slalom", "off-skate"],
+        "description": "Which style it belongs to: foundations, cruising (cruising & fitness), park, street, dance (dance & artistic), slalom (slalom & freestyle), or off-skate (drills done without skates)."
+      },
+      "difficulty": {"type": "integer", "minimum": 1, "maximum": 5, "description": "1 (first week) to 5 (advanced)."},
+      "requires": {"type": "array", "uniqueItems": true, "items": {"type": "string"}, "description": "Skill ids to be comfortable with first. [] for a starting point."},
+      "supports": {"type": "array", "uniqueItems": true, "items": {"type": "string"}, "description": "For off-skate drills: the skill ids this drill helps with."},
+      "skates": {
+        "type": "array", "uniqueItems": true,
+        "items": {"enum": ["inline", "quad", "heel", "toe", "grind"]},
+        "description": "Skate setup it needs: inline or quad skates, a heel brake, toe stops, or a grind-ready setup. Leave out if any skates work."
+      },
+      "needs": {
+        "type": "array",
+        "items": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["space", "wall", "cones", "slope", "curb", "ledge", "rail", "stairs", "quarter", "miniramp", "bowl"]}},
+        "description": "Spot features it needs. Each inner list is a choice: any one of them will do, e.g. [[\"ledge\", \"rail\"]] means a ledge or a rail."
+      },
+      "surfaces": {
+        "type": "array", "uniqueItems": true,
+        "items": {"enum": ["rink", "smooth", "rough", "park", "home"]},
+        "description": "Only suggest it at these surfaces. Leave out for anywhere."
+      },
+      "smoothGround": {"type": "boolean", "description": "true if it shouldn't be suggested on rough ground."},
+      "description": {"type": "string", "minLength": 10, "description": "One or two sentences on what the skill is."},
+      "cues": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 3}, "description": "Short practice cues, most important first."}
+    }
+  }
+}

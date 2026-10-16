@@ -25,9 +25,19 @@ Your progress stays in your browser. On a phone, use *Add to Home Screen* to ope
 
 Everything is stored in your browser (`localStorage`). You can also turn on **Google Drive sync** (below) to keep a copy in your own Drive and pick up on another device. Use **Export backup** under *Settings* to download a JSON file with your log, gear, spots and photos, and **Import backup** to restore it on any device.
 
+## Extending the app
+
+The skill graph lives in a plain JSON file, separate from the code, so you can read it, review it and add to it in a pull request without touching JavaScript. The schema explains every field, and a check runs on every pull request.
+
+| Dataset | File | Schema | What it controls |
+| --- | --- | --- | --- |
+| Skills | [`data/skills.json`](data/skills.json) | [`skills.schema.json`](data/schema/skills.schema.json) | Every skill and off-skate drill: style, difficulty, which skills come first, the skates and spot features it needs, and practice cues |
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to add a skill.
+
 ## Running it
 
-It's a single static file, `index.html`, with no build step. Open it in a browser, or serve it with GitHub Pages (Settings → Pages → Deploy from branch → `main` / root).
+It's a static page, `index.html` plus the skill list in `data/skills.json`, with no build step. Serve the folder with any static server, for example `python3 -m http.server` and then open http://localhost:8000 (opening `index.html` straight from disk can't load `data/`), or with GitHub Pages (Settings → Pages → Deploy from branch → `main` / root).
 
 ## Google Drive sync
 
