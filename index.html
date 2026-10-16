@@ -199,6 +199,7 @@ textarea{resize:vertical}
         Skating Mentor
       </div>
       <span class="save-state" id="saveState">Loading…</span>
+      <button class="btn sm" id="driveResume" data-act="driveSync" hidden>Resume Drive sync</button>
     </div>
     <nav class="tabs" role="tablist">
       <button role="tab" data-tab="today" aria-selected="true">Today</button>
@@ -330,6 +331,8 @@ const RATINGS=[null,'Not yet','Rarely','Half the time','Most tries','On demand']
 const RATING_HELP=[null,'Couldn’t land it','A few times','About half my tries','Most tries','Clean, whenever I want'];
 
 /* ---------------- State & storage ---------------- */
+/* Google Drive sync: paste the OAuth client ID for this site here (see README). Leave empty to turn Drive off. */
+const GOOGLE_CLIENT_ID='';
 const LS_KEY='skatingMentor.v1', LS_PLAN='skatingMentor.plan';
 const uid6=()=>Math.random().toString(36).slice(2,8)+Date.now().toString(36).slice(-4);
 function defaultProfile(){return{
@@ -344,17 +347,18 @@ function defaultProfile(){return{
   ctx:{skate:'sk1',spot:'sp1',minutes:45,focus:'balanced'},
   examples:true
 };}
-let state={profile:defaultProfile(),logs:[],photos:{}};
+let state={profile:defaultProfile(),logs:[],photos:{},deleted:[]};
 let backend='local', dbRef=null, profRef=null, logsCol=null, photosCol=null;
 
 function lsGet(k){try{return JSON.parse(localStorage.getItem(k)||'null')}catch(e){return null}}
 function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}
-function saveLocal(){lsSet(LS_KEY,state)}
-const local=lsGet(LS_KEY); if(local&&local.profile){state={profile:Object.assign(defaultProfile(),local.profile),logs:Array.isArray(local.logs)?local.logs:[],photos:local.photos||{}}}
+function saveLocal(){lsSet(LS_KEY,state);driveSoon()}
+const local=lsGet(LS_KEY); if(local&&local.profile){state={profile:Object.assign(defaultProfile(),local.profile),logs:Array.isArray(local.logs)?local.logs:[],photos:local.photos||{},deleted:local.deleted||[]}}
 
 function setSaveState(t){document.getElementById('saveState').textContent=t}
 let profTimer=null;
 function saveProfile(){
+  state.profile.updatedAt=new Date().toISOString();
   saveLocal();
   if(backend!=='cloud') return;
   clearTimeout(profTimer);
@@ -370,6 +374,7 @@ async function saveLog(log){
 }
 async function savePhoto(id,data){
   state.photos[id]=data;
+  driveSoon();
   if(!lsSet(LS_KEY,state)&&backend!=='cloud') toast('This browser is out of space for photos. Remove one or export a backup.');
   if(backend==='cloud'){try{await photosCol.doc(id).set({data})}catch(e){toast('Couldn\u2019t save the photo to your account.')}}
 }
@@ -392,9 +397,112 @@ function photoBlock(kind,k){
     ${src?`<button class="btn sm ghost" data-rmphoto="${kind}" data-owner="${k.id}">Remove photo</button>`:''}</div></div>`;
 }
 async function removeLog(id){
-  state.logs=state.logs.filter(l=>l.id!==id); saveLocal();
+  state.logs=state.logs.filter(l=>l.id!==id); state.deleted.push(id); saveLocal();
   if(backend==='cloud'){try{await logsCol.doc(id).delete()}catch(e){toast('Couldn’t delete from your account.')}}
 }
+/* ---------------- Google Drive sync ---------------- */
+// Uses the drive.file scope, so the app can only see the one file it creates.
+const DRIVE_FILE='Skating Mentor data.json', DAPI='https://www.googleapis.com';
+const Drive={token:null,exp:0,fileId:lsGet('sm.driveFile'),on:!!lsGet('sm.driveOn'),busy:false,last:null,timer:null,err:null};
+const driveConfigured=()=>!!GOOGLE_CLIENT_ID;
+const driveLive=()=>!!Drive.token&&Date.now()<Drive.exp;
+function loadGis(){return new Promise((res,rej)=>{
+  if(window.google&&google.accounts&&google.accounts.oauth2) return res();
+  const sc=document.createElement('script'); sc.src='https://accounts.google.com/gsi/client'; sc.onload=res; sc.onerror=()=>rej(new Error('gis')); document.head.appendChild(sc)})}
+function driveToken(){return new Promise(async(res,rej)=>{
+  try{await loadGis()}catch(e){return rej(e)}
+  const c=google.accounts.oauth2.initTokenClient({client_id:GOOGLE_CLIENT_ID,scope:'https://www.googleapis.com/auth/drive.file',
+    callback:r=>{if(r.error) return rej(r); Drive.token=r.access_token; Drive.exp=Date.now()+(Number(r.expires_in||3600)-60)*1000; res()},
+    error_callback:rej});
+  c.requestAccessToken({prompt:Drive.on?'':'consent'});
+})}
+async function dfetch(path,opt={}){
+  if(!driveLive()) throw {code:'expired'};
+  const r=await fetch(DAPI+path,{...opt,headers:{...(opt.headers||{}),Authorization:'Bearer '+Drive.token}});
+  if(r.status===401){Drive.token=null; throw {code:'expired'}}
+  if(!r.ok) throw {code:'http',status:r.status};
+  return r;
+}
+async function driveFind(){
+  if(Drive.fileId){
+    try{const j=await (await dfetch(`/drive/v3/files/${Drive.fileId}?fields=id,trashed`)).json(); if(!j.trashed) return Drive.fileId}
+    catch(e){if(e.code==='expired') throw e}
+  }
+  const q=encodeURIComponent(`name='${DRIVE_FILE}' and trashed=false`);
+  const j=await (await dfetch(`/drive/v3/files?q=${q}&orderBy=modifiedTime desc&fields=files(id)`)).json();
+  Drive.fileId=j.files&&j.files[0]?j.files[0].id:null; lsSet('sm.driveFile',Drive.fileId);
+  return Drive.fileId;
+}
+async function driveRead(){const id=await driveFind(); return id?(await dfetch(`/drive/v3/files/${id}?alt=media`)).json():null}
+async function driveWrite(){
+  const body=JSON.stringify({app:'skating-mentor',saved:new Date().toISOString(),profile:state.profile,logs:state.logs,photos:state.photos,deleted:state.deleted});
+  const id=await driveFind();
+  if(id){await dfetch(`/upload/drive/v3/files/${id}?uploadType=media`,{method:'PATCH',headers:{'Content-Type':'application/json'},body});return}
+  const b='sm'+uid6(), meta=JSON.stringify({name:DRIVE_FILE,mimeType:'application/json'});
+  const multi=`--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${meta}\r\n--${b}\r\nContent-Type: application/json\r\n\r\n${body}\r\n--${b}--`;
+  const j=await (await dfetch('/upload/drive/v3/files?uploadType=multipart&fields=id',{method:'POST',headers:{'Content-Type':'multipart/related; boundary='+b},body:multi})).json();
+  Drive.fileId=j.id; lsSet('sm.driveFile',j.id);
+}
+// Combine what's in Drive with what's in this browser: every log from both (minus deletions), the newer profile, all photos still in use
+function mergeRemote(r){
+  if(!r||!r.profile) return false;
+  const del=new Set([...(state.deleted||[]),...(r.deleted||[])]);
+  const byId=new Map(); [...(r.logs||[]),...state.logs].forEach(l=>{if(l&&l.id&&!del.has(l.id))byId.set(l.id,l)});
+  const before=JSON.stringify([state.profile,state.logs.length]);
+  const newer=(r.profile.updatedAt||'')>(state.profile.updatedAt||'');
+  if(newer) state.profile=Object.assign(defaultProfile(),r.profile);
+  state.logs=[...byId.values()]; state.deleted=[...del];
+  state.photos=Object.assign({},r.photos||{},state.photos);
+  const used=new Set([...state.profile.skates,...state.profile.spots].map(k=>k.photo).filter(Boolean));
+  Object.keys(state.photos).forEach(k=>{if(!used.has(k))delete state.photos[k]});
+  lsSet(LS_KEY,state);
+  return JSON.stringify([state.profile,state.logs.length])!==before;
+}
+function driveStatus(){
+  if(!driveConfigured()||!Drive.on) return null;
+  if(Drive.busy) return 'Syncing with Google Drive…';
+  if(Drive.err) return Drive.err;
+  if(!driveLive()) return 'Google Drive paused';
+  return 'Synced to Google Drive'+(Drive.last?' · '+Drive.last.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}):'');
+}
+function showDriveStatus(){const t=driveStatus(); if(t) setSaveState(t); const b=document.getElementById('driveResume'); if(b) b.hidden=!(driveConfigured()&&Drive.on&&!driveLive()&&!Drive.busy)}
+async function driveSync(interactive){
+  if(Drive.busy) return;
+  try{
+    if(!driveLive()){ if(!interactive){showDriveStatus();return} await driveToken() }
+    Drive.busy=true; Drive.err=null; showDriveStatus();
+    const changed=mergeRemote(await driveRead());
+    await driveWrite();
+    Drive.on=true; lsSet('sm.driveOn',true); Drive.last=new Date();
+    if(changed){planCache=null; render()}
+  }catch(e){
+    if(e&&e.code!=='expired') Drive.err=(e.type==='popup_closed'||e.error==='access_denied')?null:'Couldn\u2019t reach Google Drive';
+    if(interactive&&Drive.err) toast('Couldn\u2019t connect to Google Drive. Your progress is still saved in this browser.');
+  }finally{Drive.busy=false; showDriveStatus(); if(tab==='gear') render()}
+}
+function driveSoon(){
+  if(!driveConfigured()||!Drive.on) return;
+  clearTimeout(Drive.timer);
+  Drive.timer=setTimeout(async()=>{
+    if(!driveLive()){showDriveStatus();return}
+    try{Drive.busy=true;showDriveStatus();await driveWrite();Drive.last=new Date();Drive.err=null}
+    catch(e){if(e.code!=='expired')Drive.err='Couldn\u2019t reach Google Drive'}
+    finally{Drive.busy=false;showDriveStatus()}
+  },3000);
+}
+function driveDisconnect(){
+  if(Drive.token&&window.google&&google.accounts&&google.accounts.oauth2) google.accounts.oauth2.revoke(Drive.token,()=>{});
+  Drive.token=null; Drive.on=false; Drive.err=null; lsSet('sm.driveOn',false); setSaveState('Saved in this browser'); render();
+}
+function drivePanel(){
+  if(!driveConfigured()) return `<p class="small muted">Google Drive sync isn\u2019t set up for this copy of the app yet.</p>`;
+  if(!Drive.on) return `<p class="small">Keep your progress in your own Google Drive and pick it up on any device. The app can only see the one file it creates there.</p>
+    <div class="row"><button class="btn sm primary" data-act="driveConnect">Connect Google Drive</button></div>`;
+  return `<p class="small">${esc(driveStatus()||'')}. Changes save to <b>${esc(DRIVE_FILE)}</b> in your Drive a few seconds after you make them.</p>
+    <div class="row">${driveLive()?`<button class="btn sm" data-act="driveSync">Sync now</button>`:`<button class="btn sm primary" data-act="driveSync">Resume sync</button>`}
+    <button class="btn sm ghost" data-act="driveOff">Disconnect</button></div>`;
+}
+
 async function initCloud(){
   try{
     if(!window.claude||typeof window.claude.use!=='function'){setSaveState('Saved in this browser');return}
@@ -816,6 +924,7 @@ function viewGear(){
         ${k.surface==='home'?'<p class="muted small">Off-skate exercises only.</p>':`<div class="checks">${Object.entries(FEAT).map(([f,v])=>`<label><input type="checkbox" data-feat="${f}" data-spot="${k.id}"${k.features.includes(f)?' checked':''}>${esc(v.n)}</label>`).join('')}</div>`}
         <div class="row"><button class="btn sm ghost danger" data-rmspot="${k.id}">Remove</button></div></div>`).join('')}</div>
     </section>
+    <section class="panel stack"><h3>Google Drive</h3>${drivePanel()}</section>
     <section class="panel stack"><h3>Your data</h3>
       <p class="small">${backend==='cloud'?'Your progress is saved to your account and follows you to other devices.':'Your progress is saved in this browser only. Export a backup if you switch devices.'} The backup is a plain file with your log, skates, spots and photos, and you can import it into any copy of this app.</p>
       <div class="row"><button class="btn sm" data-act="export">Export backup</button>
@@ -871,9 +980,11 @@ document.addEventListener('click',async e=>{
   if(d.del){pendingDelete=null;await removeLog(d.del);toast('Entry removed');render();return}
   if(d.act==='resetAsk'){pendingDelete='ALL';render();return}
   if(d.act==='resetYes'){
-    const ids=state.logs.map(l=>l.id); const phIds=Object.keys(state.photos); state={profile:defaultProfile(),logs:[],photos:{}}; pendingDelete=null; planCache=null; saveLocal(); saveProfile();
+    const ids=state.logs.map(l=>l.id); const phIds=Object.keys(state.photos); state={profile:defaultProfile(),logs:[],photos:{},deleted:state.deleted.concat(ids)}; pendingDelete=null; planCache=null; saveLocal(); saveProfile();
     if(backend==='cloud'){for(const id of ids){try{await logsCol.doc(id).delete()}catch(_){}}for(const id of phIds){try{await photosCol.doc(id).delete()}catch(_){}}}
     toast('Everything erased');render();return}
+  if(d.act==='driveConnect'||d.act==='driveSync'){driveSync(true);return}
+  if(d.act==='driveOff'){driveDisconnect();return}
   if(d.act==='export'){
     const data=JSON.stringify({app:'skating-mentor',exported:new Date().toISOString(),...state},null,2);
     try{const dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;
@@ -919,6 +1030,7 @@ document.addEventListener('input',e=>{
 render();
 setSaveState(backend==='cloud'?'Saved to your account':'Connecting…');
 initCloud();
+showDriveStatus();
 </script>
 
 </body>
