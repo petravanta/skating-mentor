@@ -206,6 +206,7 @@ textarea{resize:vertical}
       <button role="tab" data-tab="map" aria-selected="false">Skill map</button>
       <button role="tab" data-tab="log" aria-selected="false">Progress log</button>
       <button role="tab" data-tab="gear" aria-selected="false">Skates, spots &amp; styles</button>
+      <button role="tab" data-tab="settings" aria-selected="false">Settings</button>
     </nav>
   </div>
 </header>
@@ -478,7 +479,7 @@ async function driveSync(interactive){
   }catch(e){
     if(e&&e.code!=='expired') Drive.err=(e.type==='popup_closed'||e.error==='access_denied')?null:'Couldn\u2019t reach Google Drive';
     if(interactive&&Drive.err) toast('Couldn\u2019t connect to Google Drive. Your progress is still saved in this browser.');
-  }finally{Drive.busy=false; showDriveStatus(); if(tab==='gear') render()}
+  }finally{Drive.busy=false; showDriveStatus(); if(tab==='settings') render()}
 }
 function driveSoon(){
   if(!driveConfigured()||!Drive.on) return;
@@ -690,7 +691,7 @@ function render(){
   computeConf();
   document.querySelectorAll('nav.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===tab?'true':'false'));
   const m=document.getElementById('main');
-  m.innerHTML=tab==='today'?viewToday():tab==='map'?viewMap():tab==='log'?viewLog():viewGear();
+  m.innerHTML=tab==='today'?viewToday():tab==='map'?viewMap():tab==='log'?viewLog():tab==='settings'?viewSettings():viewGear();
   if(tab==='map'&&mapView==='map') drawMap();
   renderDrawer();
 }
@@ -924,8 +925,15 @@ function viewGear(){
         ${k.surface==='home'?'<p class="muted small">Off-skate exercises only.</p>':`<div class="checks">${Object.entries(FEAT).map(([f,v])=>`<label><input type="checkbox" data-feat="${f}" data-spot="${k.id}"${k.features.includes(f)?' checked':''}>${esc(v.n)}</label>`).join('')}</div>`}
         <div class="row"><button class="btn sm ghost danger" data-rmspot="${k.id}">Remove</button></div></div>`).join('')}</div>
     </section>
+  </div>`;
+}
+
+/* ----- Settings ----- */
+function viewSettings(){
+  return `<div class="stack">
+    <h2>Settings</h2>
     <section class="panel stack"><h3>Google Drive</h3>${drivePanel()}</section>
-    <section class="panel stack"><h3>Your data</h3>
+    <section class="panel stack"><h3>Backup &amp; reset</h3>
       <p class="small">${backend==='cloud'?'Your progress is saved to your account and follows you to other devices.':'Your progress is saved in this browser only. Export a backup if you switch devices.'} The backup is a plain file with your log, skates, spots and photos, and you can import it into any copy of this app.</p>
       <div class="row"><button class="btn sm" data-act="export">Export backup</button>
       <label class="btn sm" for="importFile" style="display:inline-block">Import backup</label><input type="file" id="importFile" accept="application/json,.json" hidden>
