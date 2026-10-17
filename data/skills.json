@@ -928,8 +928,14 @@
     "difficulty": 1,
     "requires": [],
     "supports": ["spreadeagle", "shootduck", "powerslide"],
-    "description": "Hip flexor, hamstring and adductor stretches after skating.",
-    "cues": ["30 seconds per stretch", "Ease in, never bounce", "Both sides"]
+    "description": "Five stretches after skating, about 8 minutes. Hold each for 30–45 seconds per side, easing in without bouncing; mild tension is right, sharp pain is not.",
+    "cues": [
+      "Kneeling hip flexor: one knee down, other foot ahead; tuck the hips under and shift forward until the front of the back hip stretches",
+      "Hamstring with a strap: lying on your back, loop a towel round one foot and raise the straight leg until the back of the thigh stretches",
+      "Butterfly: sit with soles together and knees out, back tall; lean forward from the hips for the inner thighs",
+      "Side lunge hold: feet wide, sit back into one bent knee with the other leg straight, toes up; stretches the inner thigh of the straight leg",
+      "Figure-4: lying down, cross one ankle over the other knee and pull that thigh toward your chest for the outer hip and glute"
+    ]
   },
   {
     "id": "fallpractice",
