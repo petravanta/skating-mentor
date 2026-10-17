@@ -94,12 +94,17 @@ textarea{resize:vertical}
 .item .why{color:var(--muted);font-size:14px}
 .item ul{margin:4px 0 0;padding-left:18px;font-size:14px}
 .item .lvl{grid-column:3;grid-row:1}
+.illus{margin:0;color:var(--ink)}.illus svg{display:block;width:100%;height:auto}
+.illus.one{max-width:300px}
+.illus.strip{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(190px,1fr);gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:4px}
+.illus.strip figure{margin:0;scroll-snap-align:start}.illus figcaption{font-size:12px;color:var(--muted);text-align:center;margin-top:2px}
+.item .illus{grid-column:2/span 2;margin-top:6px}.item .illus.one{max-width:220px}
 .rate{grid-column:2/span 2;display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center}
 .rate .lbl{font-size:12px;color:var(--muted);margin-right:2px}
 .rate button{border:1px solid var(--line);background:var(--sunk);border-radius:6px;padding:4px 9px;font-size:13px;font-weight:600}
 .rate button:hover{border-color:var(--accent)}
 .logged{font-size:13px;color:var(--lv-conf);font-weight:600}
-@media (max-width:560px){.item{grid-template-columns:minmax(0,1fr) auto}.item .slot{grid-row:auto;grid-column:1/span 2;text-align:left;width:auto;display:flex;gap:6px;align-items:baseline}.item .slot b{display:inline;font-size:14px}.item .role{grid-column:1;grid-row:2}.item .lvl{grid-column:2;grid-row:2}.item>.name,.item>.why,.item>ul,.rate{grid-column:1/-1!important}}
+@media (max-width:560px){.item{grid-template-columns:minmax(0,1fr) auto}.item .slot{grid-row:auto;grid-column:1/span 2;text-align:left;width:auto;display:flex;gap:6px;align-items:baseline}.item .slot b{display:inline;font-size:14px}.item .role{grid-column:1;grid-row:2}.item .lvl{grid-column:2;grid-row:2}.item>.name,.item>.why,.item>ul,.item>.illus,.rate{grid-column:1/-1!important}}
 /* level pill */
 .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:700;white-space:nowrap;background:var(--sunk);color:var(--muted)}
 .pill .pct{font-family:var(--f-mono);font-weight:500}
@@ -247,8 +252,28 @@ const EQ={inline:'inline skates',quad:'quad skates',heel:'a heel brake',toe:'toe
 // Skills come from data/skills.json; the readable field names there map onto the short ones the app uses
 const STYLE_ID={foundations:'F',cruising:'C',park:'P',street:'S',dance:'D',slalom:'L','off-skate':'O'};
 const SKILLS=CATALOG.skills.map(s=>({id:s.id,st:STYLE_ID[s.style],n:s.name,d:s.difficulty,req:s.requires||[],sup:s.supports,eq:s.skates,
-  need:s.needs&&s.needs.map(o=>o.join('|')),surf:s.surfaces,smooth:s.smoothGround?1:undefined,desc:s.description,cues:s.cues||[]}));
+  need:s.needs&&s.needs.map(o=>o.join('|')),surf:s.surfaces,smooth:s.smoothGround?1:undefined,desc:s.description,cues:s.cues||[],illu:s.illustrations||[]}));
 const BYID=Object.fromEntries(SKILLS.map(s=>[s.id,s]));
+// Drawings are inlined so they pick up the theme colours. They come from our own repo, but strip anything active anyway.
+const ILLU={};
+await Promise.all([...new Set(SKILLS.flatMap(s=>s.illu))].map(async f=>{
+  try{
+    const r=await fetch('data/illustrations/'+f); if(!r.ok) return;
+    const doc=new DOMParser().parseFromString(await r.text(),'image/svg+xml'), svg=doc.documentElement;
+    if(svg.nodeName!=='svg') return;
+    svg.querySelectorAll('script,foreignObject,iframe,image,a').forEach(n=>n.remove());
+    for(const el of [svg,...svg.querySelectorAll('*')]) for(const a of [...el.attributes]) if(/^on/i.test(a.name)||/href$/i.test(a.name)) el.removeAttribute(a.name);
+    const key=f.replace(/\.svg$/,'');
+    svg.querySelectorAll('[id]').forEach(n=>n.id=key+'-'+n.id);   // ids must be unique once several drawings share the page
+    ILLU[f]=new XMLSerializer().serializeToString(svg).replace(/url\(#/g,'url(#'+key+'-');
+  }catch(e){}
+}));
+// One drawing, or a captioned strip when a skill has several (captions come from the matching cue, up to its colon)
+function illus(s,cls=''){
+  const fs=s.illu.filter(f=>ILLU[f]); if(!fs.length) return '';
+  if(fs.length===1) return `<figure class="illus one ${cls}">${ILLU[fs[0]]}</figure>`;
+  return `<div class="illus strip ${cls}" role="list">${fs.map((f,i)=>`<figure role="listitem">${ILLU[f]}<figcaption>${esc((s.cues[i]||'').split(':')[0])}</figcaption></figure>`).join('')}</div>`;
+}
 const CHILDREN={}; SKILLS.forEach(s=>s.req.forEach(r=>(CHILDREN[r]=CHILDREN[r]||[]).push(s.id)));
 const SUPPORTED_BY={}; SKILLS.forEach(s=>(s.sup||[]).forEach(t=>(SUPPORTED_BY[t]=SUPPORTED_BY[t]||[]).push(s.id)));
 
@@ -656,6 +681,7 @@ function viewToday(){
       <button class="name" data-open="${s.id}">${esc(s.n)}</button>
       <p class="why" style="grid-column:2/span 2">${esc(it.why)}</p>
       <ul style="grid-column:2/span 2">${s.cues.slice(0,s.st==='O'?s.cues.length:2).map(q=>`<li>${esc(q)}</li>`).join('')}</ul>
+      ${illus(s,'card')}
       <div class="rate">${done?`<span class="logged">Logged: ${RATINGS[done.r]}</span> <button data-undo="${i}">Undo</button>`:
         `<span class="lbl">How did it go?</span>${[1,2,3,4,5].map(r=>`<button data-rate="${r}" data-item="${i}" title="${RATING_HELP[r]}">${RATINGS[r]}</button>`).join('')}`}</div>
     </article>`}).join('');
@@ -788,6 +814,7 @@ function renderDrawer(){
       ${c>0?`<div class="meter"><i style="width:${c}%;background:var(--lv-${['new','learn','dev','conf','solid'][lv]})"></i></div>`:''}
     </div>
     <p>${esc(s.desc)}</p>
+    ${illus(s)}
     <div><h3>Cues</h3><ul>${s.cues.map(q=>`<li>${esc(q)}</li>`).join('')}</ul></div>
     ${needs.length?`<p class="small"><b>Needs:</b> ${esc(needs.join(', '))}.${b?` <span style="color:var(--danger)">Not possible with today’s setup (${esc(b)}).</span>`:''}</p>`:''}
     <div class="stack" style="gap:8px"><h3>Log practice</h3>
