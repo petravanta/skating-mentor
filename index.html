@@ -99,7 +99,7 @@ textarea{resize:vertical}
 .rate button{border:1px solid var(--line);background:var(--sunk);border-radius:6px;padding:4px 9px;font-size:13px;font-weight:600}
 .rate button:hover{border-color:var(--accent)}
 .logged{font-size:13px;color:var(--lv-conf);font-weight:600}
-@media (max-width:560px){.item{grid-template-columns:minmax(0,1fr) auto}.item .slot{grid-row:auto;grid-column:1/span 2;text-align:left;width:auto;display:flex;gap:6px;align-items:baseline}.item .slot b{display:inline;font-size:14px}.item .lvl{grid-column:2;grid-row:2}.rate{grid-column:1/span 2}}
+@media (max-width:560px){.item{grid-template-columns:minmax(0,1fr) auto}.item .slot{grid-row:auto;grid-column:1/span 2;text-align:left;width:auto;display:flex;gap:6px;align-items:baseline}.item .slot b{display:inline;font-size:14px}.item .role{grid-column:1;grid-row:2}.item .lvl{grid-column:2;grid-row:2}.item>.name,.item>.why,.item>ul,.rate{grid-column:1/-1!important}}
 /* level pill */
 .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:700;white-space:nowrap;background:var(--sunk);color:var(--muted)}
 .pill .pct{font-family:var(--f-mono);font-weight:500}
@@ -606,7 +606,7 @@ function offWhy(s,focusIds){
   const sup=(s.sup||[]).filter(t=>styleOn(BYID[t]));
   const pri=focusIds?sup.filter(t=>focusIds.includes(t)):[];
   const list=(pri.length?pri:sup.filter(t=>{const k=conf(t);return k>0&&k<70})).concat(sup).filter((v,i,a)=>a.indexOf(v)===i).slice(0,2);
-  return list.length?`Builds strength for ${list.map(t=>BYID[t].n).join(' and ')}.`:s.desc;
+  return list.length?`Helps with ${list.map(t=>BYID[t].n).join(' and ')}.`:s.desc;
 }
 function ago(ts){const d=Math.floor((Date.now()-new Date(ts).getTime())/DAY);return d<=0?'today':d===1?'yesterday':d<14?d+' days ago':d<60?Math.round(d/7)+' weeks ago':Math.round(d/30)+' months ago'}
 function ctxKey(){const c=state.profile.ctx;return [c.skate,c.spot,c.minutes,c.focus,state.profile.styles.join('')].join('|')}
@@ -655,7 +655,7 @@ function viewToday(){
       <div class="lvl">${pill(s.id)}</div>
       <button class="name" data-open="${s.id}">${esc(s.n)}</button>
       <p class="why" style="grid-column:2/span 2">${esc(it.why)}</p>
-      <ul style="grid-column:2/span 2">${s.cues.slice(0,2).map(q=>`<li>${esc(q)}</li>`).join('')}</ul>
+      <ul style="grid-column:2/span 2">${s.cues.slice(0,s.st==='O'?s.cues.length:2).map(q=>`<li>${esc(q)}</li>`).join('')}</ul>
       <div class="rate">${done?`<span class="logged">Logged: ${RATINGS[done.r]}</span> <button data-undo="${i}">Undo</button>`:
         `<span class="lbl">How did it go?</span>${[1,2,3,4,5].map(r=>`<button data-rate="${r}" data-item="${i}" title="${RATING_HELP[r]}">${RATINGS[r]}</button>`).join('')}`}</div>
     </article>`}).join('');
