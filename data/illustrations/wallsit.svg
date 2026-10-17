@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="illu" viewBox="0 0 240 180" role="img" aria-label="Wall sit: back flat on the wall, thighs near parallel to the floor">
+<title>Wall sit: back flat on the wall, thighs near parallel to the floor</title>
+<style>
+.illu .il-fig{fill:none;stroke:currentColor;stroke-width:6;stroke-linecap:round;stroke-linejoin:round}
+.illu .il-far{opacity:.4}
+.illu .il-head{fill:currentColor}
+.illu .il-floor{stroke:currentColor;stroke-width:1.5;opacity:.3}
+.illu .il-wall{stroke:currentColor;stroke-width:3;opacity:.3}
+.illu .il-boot{fill:none;stroke:currentColor;stroke-width:3;stroke-linejoin:round}
+.illu .il-wheel{fill:currentColor}
+.illu .il-prop{fill:none;stroke:currentColor;stroke-width:2;stroke-dasharray:3 3;opacity:.7}
+.illu .il-hl{fill:var(--accent,#c2306f);opacity:.28}
+.illu .il-acc{fill:none;stroke:var(--accent,#c2306f);stroke-width:2.5;stroke-linecap:round}
+.illu .il-dash{stroke-dasharray:5 5}
+.illu .il-pad{fill:var(--accent,#c2306f)}
+.illu .il-lbl{fill:var(--accent,#c2306f);font:600 11px system-ui,-apple-system,sans-serif}
+.illu .il-top{fill:none;stroke:currentColor;stroke-width:3}
+.illu .il-wtop{fill:currentColor;opacity:.55}
+</style>
+<defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--accent,#c2306f)"/></marker></defs>
+<line class="il-floor" x1="10" y1="164" x2="230" y2="164"/>
+<line class="il-wall" x1="56.0" y1="16" x2="56.0" y2="164"/>
+<polyline class="il-fig il-far" points="62.0,110.0 103.4,117.1 100.0,159.0 112.0,159.0"/>
+<polyline class="il-fig il-far" points="62.0,58.0 72.4,84.0 72.0,110.0"/>
+<polyline class="il-fig" points="62.0,110.0 62.0,58.0"/>
+<polyline class="il-fig" points="62.0,110.0 103.4,117.0 104.0,159.0 116.0,159.0"/>
+<polyline class="il-fig" points="62.0,58.0 69.3,85.0 76.0,110.0"/>
+<circle class="il-head" cx="62.0" cy="43.0" r="10"/>
+<ellipse class="il-hl" cx="82.7" cy="113.5" rx="20" ry="8" transform="rotate(0 82.7 113.5)"/>
+<text class="il-lbl" x="130" y="26" text-anchor="start">thighs near</text><text class="il-lbl" x="130" y="39" text-anchor="start">parallel</text>
+<text class="il-lbl" x="130" y="66" text-anchor="start">hold 45 s</text>
+</svg>

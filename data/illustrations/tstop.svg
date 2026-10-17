@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="illu" viewBox="0 0 240 180" role="img" aria-label="T-stop from above: the back skate drags at a right angle behind the glide skate">
+<title>T-stop from above: the back skate drags at a right angle behind the glide skate</title>
+<style>
+.illu .il-fig{fill:none;stroke:currentColor;stroke-width:6;stroke-linecap:round;stroke-linejoin:round}
+.illu .il-far{opacity:.4}
+.illu .il-head{fill:currentColor}
+.illu .il-floor{stroke:currentColor;stroke-width:1.5;opacity:.3}
+.illu .il-wall{stroke:currentColor;stroke-width:3;opacity:.3}
+.illu .il-boot{fill:none;stroke:currentColor;stroke-width:3;stroke-linejoin:round}
+.illu .il-wheel{fill:currentColor}
+.illu .il-prop{fill:none;stroke:currentColor;stroke-width:2;stroke-dasharray:3 3;opacity:.7}
+.illu .il-hl{fill:var(--accent,#c2306f);opacity:.28}
+.illu .il-acc{fill:none;stroke:var(--accent,#c2306f);stroke-width:2.5;stroke-linecap:round}
+.illu .il-dash{stroke-dasharray:5 5}
+.illu .il-pad{fill:var(--accent,#c2306f)}
+.illu .il-lbl{fill:var(--accent,#c2306f);font:600 11px system-ui,-apple-system,sans-serif}
+.illu .il-top{fill:none;stroke:currentColor;stroke-width:3}
+.illu .il-wtop{fill:currentColor;opacity:.55}
+</style>
+<defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--accent,#c2306f)"/></marker></defs>
+<text class="il-lbl" x="14" y="26" text-anchor="start">seen from above</text>
+<g transform="translate(130.0 76.0) rotate(0)"><path class="il-top" d="M-20 -5Q-24 0 -20 5L14 8Q24 7 24 0Q24 -7 14 -8Z"/><rect class="il-wtop" x="-17" y="-1.5" width="7" height="3" rx="1.5"/><rect class="il-wtop" x="-7" y="-1.5" width="7" height="3" rx="1.5"/><rect class="il-wtop" x="3" y="-1.5" width="7" height="3" rx="1.5"/><rect class="il-wtop" x="13" y="-1.5" width="7" height="3" rx="1.5"/></g>
+<g transform="translate(106.0 102.0) rotate(90)"><path class="il-top" d="M-20 -5Q-24 0 -20 5L14 8Q24 7 24 0Q24 -7 14 -8Z"/><rect class="il-wtop" x="-17" y="-1.5" width="7" height="3" rx="1.5"/><rect class="il-wtop" x="-7" y="-1.5" width="7" height="3" rx="1.5"/><rect class="il-wtop" x="3" y="-1.5" width="7" height="3" rx="1.5"/><rect class="il-wtop" x="13" y="-1.5" width="7" height="3" rx="1.5"/></g>
+<line class="il-acc" x1="40.0" y1="76.0" x2="92.0" y2="76.0" marker-end="url(#ah)"/>
+<text class="il-lbl" x="40" y="66" text-anchor="start">glide</text>
+<ellipse class="il-hl" cx="106.0" cy="104.0" rx="11" ry="23" transform="rotate(0 106.0 104.0)"/>
+<text class="il-lbl" x="14" y="150" text-anchor="start">back skate at 90°,</text>
+<text class="il-lbl" x="14" y="163" text-anchor="start">drag behind the heel</text>
+</svg>
