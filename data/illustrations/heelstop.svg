@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="illu" viewBox="0 0 240 180" role="img" aria-label="Heel brake stop: brake foot forward, toes lifted, heel brake pressing the ground">
+<title>Heel brake stop: brake foot forward, toes lifted, heel brake pressing the ground</title>
+<style>
+.illu .il-fig{fill:none;stroke:currentColor;stroke-width:6;stroke-linecap:round;stroke-linejoin:round}
+.illu .il-far{opacity:.4}
+.illu .il-head{fill:currentColor}
+.illu .il-floor{stroke:currentColor;stroke-width:1.5;opacity:.3}
+.illu .il-wall{stroke:currentColor;stroke-width:3;opacity:.3}
+.illu .il-boot{fill:none;stroke:currentColor;stroke-width:3;stroke-linejoin:round}
+.illu .il-wheel{fill:currentColor}
+.illu .il-prop{fill:none;stroke:currentColor;stroke-width:2;stroke-dasharray:3 3;opacity:.7}
+.illu .il-hl{fill:var(--accent,#c2306f);opacity:.28}
+.illu .il-acc{fill:none;stroke:var(--accent,#c2306f);stroke-width:2.5;stroke-linecap:round}
+.illu .il-dash{stroke-dasharray:5 5}
+.illu .il-pad{fill:var(--accent,#c2306f)}
+.illu .il-lbl{fill:var(--accent,#c2306f);font:600 11px system-ui,-apple-system,sans-serif}
+.illu .il-top{fill:none;stroke:currentColor;stroke-width:3}
+.illu .il-wtop{fill:currentColor;opacity:.55}
+</style>
+<defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--accent,#c2306f)"/></marker></defs>
+<line class="il-floor" x1="10" y1="164" x2="230" y2="164"/>
+<path class="il-boot il-far" d="M83.0,130.0 L83.0,146.0 L114.0,146.0 L114.0,140.0 L96.0,136.0 L94.0,128.0Z"/>
+<line class="il-boot il-far" x1="85.0" y1="150.0" x2="112.0" y2="150.0"/>
+<circle class="il-wheel il-far" cx="86.0" cy="155.0" r="4"/>
+<circle class="il-wheel il-far" cx="95.0" cy="155.0" r="4"/>
+<circle class="il-wheel il-far" cx="104.0" cy="155.0" r="4"/>
+<circle class="il-wheel il-far" cx="113.0" cy="155.0" r="4"/>
+<polyline class="il-fig il-far" points="104.0,80.0 126.2,115.6 92.0,140.0"/>
+<polyline class="il-fig il-far" points="114.8,29.1 118.9,56.8 140.0,72.0"/>
+<polyline class="il-fig" points="104.0,80.0 114.8,29.1"/>
+<path class="il-boot" d="M137.9,132.1 L143.9,146.9 L172.6,135.3 L170.4,129.8 L152.2,132.8 L147.4,126.1Z"/>
+<line class="il-boot" x1="147.3" y1="149.9" x2="172.3" y2="139.8"/>
+<circle class="il-wheel" cx="150.1" cy="154.2" r="4"/>
+<circle class="il-wheel" cx="158.4" cy="150.8" r="4"/>
+<circle class="il-wheel" cx="166.7" cy="147.4" r="4"/>
+<circle class="il-wheel" cx="175.1" cy="144.0" r="4"/>
+<polyline class="il-fig" points="104.0,80.0 142.6,96.7 150.0,138.0"/>
+<polyline class="il-fig" points="114.8,29.1 121.9,56.2 146.0,66.0"/>
+<circle class="il-head" cx="117.9" cy="14.5" r="10"/>
+<rect class="il-pad" x="131.9" y="155" width="10" height="9" rx="2"/>
+<ellipse class="il-hl" cx="136.9" cy="159.0" rx="14" ry="9" transform="rotate(0 136.9 159.0)"/>
+<text class="il-lbl" x="14" y="26" text-anchor="start">scissor the brake</text><text class="il-lbl" x="14" y="39" text-anchor="start">foot forward</text>
+<text class="il-lbl" x="160" y="104" text-anchor="start">lift toes,</text><text class="il-lbl" x="160" y="117" text-anchor="start">press heel</text>
+</svg>

@@ -1,4 +1,4 @@
-// Checks what the JSON Schema can't: ids are unique, every reference points at a skill that exists,
+// Checks what the JSON Schema can't: ids are unique, every reference points at a skill or illustration that exists,
 // and the requires links never loop back on themselves.
 // Run: node scripts/check-data.js
 const fs = require('fs'), path = require('path');
@@ -15,6 +15,7 @@ for (const s of skills) {
   for (const r of s.supports || []) if (!byId.has(r)) errors.push(`skills.json: "${s.id}" supports "${r}", which doesn't exist`);
   if (s.supports && s.style !== 'off-skate') errors.push(`skills.json: "${s.id}" has supports, which is only for off-skate drills`);
   if (s.requires.includes(s.id)) errors.push(`skills.json: "${s.id}" requires itself`);
+  for (const f of s.illustrations || []) if (!fs.existsSync(path.join(__dirname, '..', 'data', 'illustrations', f))) errors.push(`skills.json: "${s.id}" shows illustration "${f}", which isn't in data/illustrations/`);
 }
 // Loop check: walk each skill's requires chain
 const state = new Map(); // 1 = visiting, 2 = done

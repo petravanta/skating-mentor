@@ -6,6 +6,7 @@
     "difficulty": 1,
     "requires": [],
     "description": "Knees bent, chest up, weight over the middle of the feet. Everything else is built on this.",
+    "illustrations": ["stance.svg"],
     "cues": [
       "Nose over knees over toes",
       "Feet hip-width, slightly staggered",
@@ -32,6 +33,7 @@
     "difficulty": 1,
     "requires": ["stance"],
     "description": "Push out to the side and recover under the hips, alternating feet.",
+    "illustrations": ["stride.svg"],
     "cues": [
       "Push sideways, not backwards",
       "Bring the foot back under you before the next push",
@@ -45,6 +47,7 @@
     "difficulty": 1,
     "requires": ["stance"],
     "description": "Two-foot lemon shapes: heels in, toes out, then squeeze back together.",
+    "illustrations": ["swizzle.svg"],
     "cues": [
       "Press out through the heels, pull in with the inner thighs",
       "Stay low the whole time"
@@ -57,6 +60,7 @@
     "difficulty": 2,
     "requires": ["stride"],
     "description": "Hold a balanced glide on one foot for several seconds, both sides.",
+    "illustrations": ["glide1.svg"],
     "cues": [
       "Hips stacked over the gliding skate",
       "Free foot lifted beside the ankle",
@@ -96,6 +100,7 @@
     "difficulty": 2,
     "requires": ["swizzle"],
     "description": "Push skates out into a wide V (inline) or pigeon-toe (quad) and scrub off speed.",
+    "illustrations": ["plow.svg"],
     "cues": [
       "Wide stance, then press the heels out",
       "Low hips, push into the ground",
@@ -110,6 +115,7 @@
     "requires": ["stride"],
     "skates": ["heel"],
     "description": "Scissor the braking foot forward and lift its toe to press the heel brake.",
+    "illustrations": ["heelstop.svg"],
     "cues": [
       "Brake foot forward until knees overlap",
       "Lift the toe and press down through the heel",
@@ -137,6 +143,7 @@
     "difficulty": 2,
     "requires": ["glide1"],
     "description": "Drag the back skate at a right angle behind the glide skate to brake.",
+    "illustrations": ["tstop.svg"],
     "cues": [
       "Glide foot straight, knee bent",
       "Back skate at 90° behind the heel",
@@ -648,6 +655,7 @@
     "difficulty": 3,
     "requires": ["glide1", "stance"],
     "description": "Glide on one deeply bent leg with the other extended forward.",
+    "illustrations": ["shootduck.svg"],
     "cues": ["Sink slowly, hands forward", "Extended leg straight, heel up", "Build depth over sessions"]
   },
   {
@@ -853,6 +861,7 @@
     "requires": [],
     "supports": ["stance", "stride", "hop"],
     "description": "3 × 15, slow down and quick up. The skating position under load.",
+    "illustrations": ["squat.svg"],
     "cues": [
       "Chest up, knees track over toes",
       "Hips back like sitting",
@@ -867,6 +876,7 @@
     "requires": [],
     "supports": ["stance", "shootduck", "endurance"],
     "description": "Hold a skating-depth sit against a wall. 3 × 45 seconds.",
+    "illustrations": ["wallsit.svg"],
     "cues": ["Thighs near parallel", "Breathe steadily", "Add time each week"]
   },
   {
@@ -877,6 +887,7 @@
     "requires": [],
     "supports": ["glide1", "edges", "tstop"],
     "description": "Stand on one leg for 30 seconds, then with eyes closed.",
+    "illustrations": ["balance.svg"],
     "cues": ["Soft knee, hip level", "Eyes closed is the progression", "Both sides"]
   },
   {
@@ -929,6 +940,7 @@
     "requires": [],
     "supports": ["spreadeagle", "shootduck", "powerslide"],
     "description": "Five stretches after skating, about 8 minutes. Hold each for 30–45 seconds per side, easing in without bouncing; mild tension is right, sharp pain is not.",
+    "illustrations": ["stretch-1.svg", "stretch-2.svg", "stretch-3.svg", "stretch-4.svg", "stretch-5.svg"],
     "cues": [
       "Kneeling hip flexor: one knee down, other foot ahead; tuck the hips under and shift forward until the front of the back hip stretches",
       "Hamstring with a strap: lying on your back, loop a towel round one foot and raise the straight leg until the back of the thigh stretches",
@@ -955,6 +967,7 @@
     "requires": ["squat"],
     "supports": ["crossfwd", "bcross", "longstride"],
     "description": "Side-to-side lunges that copy the push of a stride.",
+    "illustrations": ["lateral.svg"],
     "cues": ["Sit back into the bent leg", "Straight leg toes forward", "10 each side"]
   },
   {

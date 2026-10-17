@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="illu" viewBox="0 0 240 180" role="img" aria-label="Forward stride from the front: push out to the side, then bring the foot back under you">
+<title>Forward stride from the front: push out to the side, then bring the foot back under you</title>
+<style>
+.illu .il-fig{fill:none;stroke:currentColor;stroke-width:6;stroke-linecap:round;stroke-linejoin:round}
+.illu .il-far{opacity:.4}
+.illu .il-head{fill:currentColor}
+.illu .il-floor{stroke:currentColor;stroke-width:1.5;opacity:.3}
+.illu .il-wall{stroke:currentColor;stroke-width:3;opacity:.3}
+.illu .il-boot{fill:none;stroke:currentColor;stroke-width:3;stroke-linejoin:round}
+.illu .il-wheel{fill:currentColor}
+.illu .il-prop{fill:none;stroke:currentColor;stroke-width:2;stroke-dasharray:3 3;opacity:.7}
+.illu .il-hl{fill:var(--accent,#c2306f);opacity:.28}
+.illu .il-acc{fill:none;stroke:var(--accent,#c2306f);stroke-width:2.5;stroke-linecap:round}
+.illu .il-dash{stroke-dasharray:5 5}
+.illu .il-pad{fill:var(--accent,#c2306f)}
+.illu .il-lbl{fill:var(--accent,#c2306f);font:600 11px system-ui,-apple-system,sans-serif}
+.illu .il-top{fill:none;stroke:currentColor;stroke-width:3}
+.illu .il-wtop{fill:currentColor;opacity:.55}
+</style>
+<defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--accent,#c2306f)"/></marker></defs>
+<line class="il-floor" x1="10" y1="164" x2="230" y2="164"/>
+<g transform="rotate(-25 64.0 146.0)"><rect class="il-boot il-far" x="57.0" y="138.0" width="14" height="16" rx="3"/><rect class="il-wheel il-far" x="61.5" y="155.0" width="5" height="14" rx="2.5"/></g>
+<polyline class="il-fig il-far" points="117.0,80.0 90.7,112.7 64.0,146.0"/>
+<polyline class="il-fig il-far" points="106.6,28.3 85.6,46.8 92.0,72.0"/>
+<polyline class="il-fig" points="126.0,80.0 120.6,28.3"/>
+<polyline class="il-fig" points="106.6,28.3 134.6,28.3"/>
+<polyline class="il-fig" points="117.0,80.0 135.0,80.0"/>
+<g transform="rotate(0 128.0 140.0)"><rect class="il-boot" x="121.0" y="132.0" width="14" height="16" rx="3"/><rect class="il-wheel" x="125.5" y="149.0" width="5" height="14" rx="2.5"/></g>
+<polyline class="il-fig" points="135.0,80.0 160.5,113.4 128.0,140.0"/>
+<polyline class="il-fig" points="134.6,28.3 155.7,46.6 150.0,72.0"/>
+<circle class="il-head" cx="119.0" cy="13.4" r="10"/>
+<line class="il-acc" x1="88.0" y1="104.0" x2="52.0" y2="112.0" marker-end="url(#ah)"/>
+<text class="il-lbl" x="14" y="26" text-anchor="start">push out</text><text class="il-lbl" x="14" y="39" text-anchor="start">to the side</text>
+<path class="il-acc" d="M60.0 128.0Q77.2 160.9 114.0 156.0" marker-end="url(#ah)"/>
+<text class="il-lbl" x="150" y="26" text-anchor="start">then recover</text><text class="il-lbl" x="150" y="39" text-anchor="start">under your hips</text>
+</svg>
