@@ -1,0 +1,42 @@
+# Contributing
+
+The easiest way to help is to add skills or off-skate drills. They live in one plain JSON file, [`data/skills.json`](data/skills.json), and you don't need to know any JavaScript.
+
+## Add a skill
+
+1. Open [`data/skills.json`](data/skills.json) on GitHub and click the pencil icon to edit it. GitHub makes a copy for you if needed.
+2. Find a skill in the same style, copy its whole `{ … }` block, and paste it after that block, with a comma between them. Skills are grouped by style.
+3. Change the fields. Every field is explained in [`data/schema/skills.schema.json`](data/schema/skills.schema.json). The main ones:
+   - `id`: a new short id in lowercase letters, digits and hyphens. Never change the id of a skill that's already there, because people's practice logs refer to it.
+   - `name`, `style`, `difficulty` (1 to 5), `description` and `cues` (two or three short ones).
+   - `requires`: ids of the skills to be comfortable with first. This is what puts the skill on the skill map.
+   - `skates`, `needs`, `surfaces` and `smoothGround` are optional. Use them when the skill only works with certain skates or at certain spots. `"needs": [["ledge", "rail"]]` means a ledge or a rail.
+   - For an off-skate drill, use `"style": "off-skate"` and list the skills it helps with in `supports`.
+4. Click **Propose changes**, then **Create pull request**. A check runs automatically and points out anything that needs fixing, such as a `requires` id that doesn't exist.
+
+Here is a complete example:
+
+```json
+{
+  "id": "curb-manual",
+  "name": "Curb manual",
+  "style": "street",
+  "difficulty": 4,
+  "requires": ["curbhop"],
+  "needs": [["curb", "ledge"]],
+  "description": "Roll along the top of a curb or low ledge on the back wheels without dropping off.",
+  "cues": ["Pop onto the back wheels just before the edge", "Arms forward for balance", "Look at the end of the curb"]
+}
+```
+
+## Data or code?
+
+Anything you can describe with the existing fields is data. A new style, spot feature, surface or skate setup changes how sessions are planned, so it needs a code change in `index.html`. Open an issue or a pull request for that.
+
+## Checking locally
+
+```sh
+node scripts/check-data.js     # unique ids, references exist, no requires loops
+npx ajv-cli@5 validate --spec=draft2020 -s data/schema/skills.schema.json -d data/skills.json
+python3 -m http.server         # then open http://localhost:8000
+```

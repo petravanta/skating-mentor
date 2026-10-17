@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<script>try{var t=localStorage.getItem('petravanta.theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}</script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <style>
 :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -190,6 +191,7 @@ textarea{resize:vertical}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 18px);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:14px;font-weight:600;z-index:60;max-width:calc(100% - 32px)}
 .empty{padding:28px 16px;text-align:center;color:var(--muted)}
 @media (prefers-reduced-motion:no-preference){.drawer{animation:slide .18s ease-out}@keyframes slide{from{transform:translateX(24px);opacity:.4}}}
+.load-error{margin:16px;padding:12px 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink)}
 </style>
 
 <header class="top">
@@ -217,6 +219,18 @@ textarea{resize:vertical}
 <div id="toastHost"></div>
 
 <script>
+/* ---------------- Catalog ---------------- */
+// Skills live in data/skills.json so anyone can review or add to them in a pull request (see CONTRIBUTING.md).
+async function loadCatalog(names){
+  const out={};
+  await Promise.all(names.map(async n=>{const r=await fetch('data/'+n+'.json'); if(!r.ok) throw new Error(n); out[n]=await r.json()}));
+  return out;
+}
+(async()=>{
+const CATALOG=await loadCatalog(['skills']).catch(e=>{
+  document.body.insertAdjacentHTML('afterbegin','<p class="load-error" role="alert">Couldn’t load the skill list. Check your connection and reload.</p>');
+  throw e});
+
 /* ---------------- Skill graph ---------------- */
 const STYLES={
   F:{n:'Foundations'}, C:{n:'Cruising & fitness'}, P:{n:'Park'}, S:{n:'Street'},
@@ -230,97 +244,10 @@ const FEAT={
 const SURF={rink:'Indoor rink / smooth floor',smooth:'Smooth outdoor (court, lot)',rough:'Rough asphalt or path',park:'Skatepark',home:'Home / gym (no skating)'};
 const EQ={inline:'inline skates',quad:'quad skates',heel:'a heel brake',toe:'toe stops',grind:'a grind-ready setup'};
 
-const SKILLS=[
-// Foundations
-{id:'stance',st:'F',n:'Ready stance',d:1,req:[],desc:'Knees bent, chest up, weight over the middle of the feet. Everything else is built on this.',cues:['Nose over knees over toes','Feet hip-width, slightly staggered','Soft knees, never locked']},
-{id:'fall',st:'F',n:'Falling safely & getting up',d:1,req:[],desc:'Fall forward onto your pads, slide it out, and stand back up through a kneel.',cues:['Get low before you go down','Knee pads first, then wrist guards, and slide','Up: one knee, other skate flat, hands on knee, stand']},
-{id:'stride',st:'F',n:'Forward stride',d:1,req:['stance'],desc:'Push out to the side and recover under the hips, alternating feet.',cues:['Push sideways, not backwards','Bring the foot back under you before the next push','Fully extend the pushing leg']},
-{id:'swizzle',st:'F',n:'Forward swizzles',d:1,req:['stance'],desc:'Two-foot lemon shapes: heels in, toes out, then squeeze back together.',cues:['Press out through the heels, pull in with the inner thighs','Stay low the whole time']},
-{id:'glide1',st:'F',n:'One-foot glide',d:2,req:['stride'],desc:'Hold a balanced glide on one foot for several seconds, both sides.',cues:['Hips stacked over the gliding skate','Free foot lifted beside the ankle','Aim for 5 seconds, then 10']},
-{id:'aframe',st:'F',n:'A-frame turn',d:1,req:['stride'],desc:'Wide-stance turn steered by pressing the outside skate onto its inside edge.',cues:['Feet wider than shoulders','Look and point where you are going','Weight on the outside foot']},
-{id:'hop',st:'F',n:'Two-foot hop',d:2,req:['stride'],desc:'Jump off both skates while rolling and land balanced.',cues:['Bend deep, spring, absorb the landing','Land knees soft, feet hip-width','Arms forward for balance']},
-{id:'plow',st:'F',n:'Plow stop',d:2,req:['swizzle'],desc:'Push skates out into a wide V (inline) or pigeon-toe (quad) and scrub off speed.',cues:['Wide stance, then press the heels out','Low hips, push into the ground','Start slow, then add speed']},
-{id:'heelstop',st:'F',n:'Heel brake stop',d:1,req:['stride'],eq:['heel'],desc:'Scissor the braking foot forward and lift its toe to press the heel brake.',cues:['Brake foot forward until knees overlap','Lift the toe and press down through the heel','Most weight stays on the back leg']},
-{id:'toedrag',st:'F',n:'Toe-stop drag',d:2,req:['glide1'],eq:['toe'],desc:'Glide on one foot and drag the other toe stop behind you to slow down.',cues:['Drag foot turned out, behind the glide foot','Weight stays on the front leg','Press gradually']},
-{id:'tstop',st:'F',n:'T-stop',d:2,req:['glide1'],desc:'Drag the back skate at a right angle behind the glide skate to brake.',cues:['Glide foot straight, knee bent','Back skate at 90° behind the heel','Light drag first, then add pressure']},
-{id:'edges',st:'F',n:'Inside & outside edges',d:2,req:['glide1'],desc:'Hold curves on each edge of each foot. These are the base of every turn and crossover.',cues:['Lean ankle and knee together','Outside edges are the hard ones, so go slow','Draw half-circles along a line']},
-{id:'parallel',st:'F',n:'Parallel turn',d:2,req:['aframe','glide1'],desc:'Turn with skates close together, leaning on matching edges.',cues:['Inside skate slightly ahead','Lean from the ankles, not the shoulders','Shoulders rotate into the turn first']},
-{id:'bswizzle',st:'F',n:'Backward swizzles',d:2,req:['swizzle'],desc:'Lemons rolling backwards: toes in, heels out.',cues:['Look over one shoulder','Weight on the balls of the feet','Small lemons first']},
-{id:'twofootturn',st:'F',n:'Two-foot turn',d:2,req:['bswizzle','parallel'],desc:'Turn from forward to backward (and back) on both skates while rolling.',cues:['Shoulders rotate first, hips follow','Stay centred over both skates','Practise both directions']},
-{id:'bstride',st:'F',n:'Backward C-cuts',d:3,req:['bswizzle'],desc:'Backward pushes drawing C shapes with alternating skates.',cues:['Push from the front wheels outward','Keep hips square to your line','Check behind you every few strides']},
-{id:'crossfwd',st:'F',n:'Forward crossovers',d:3,req:['edges','parallel'],desc:'Step the outside skate over the inside one around a curve.',cues:['Power comes from the under-leg on its outside edge','Lift and place the crossing skate, don’t swing it','Shoulders face into the circle']},
-{id:'mohawk',st:'F',n:'Mohawk turn',d:3,req:['twofootturn','edges'],desc:'Step from forward to backward onto the other foot, heels pointing at each other.',cues:['Open the free heel toward the gliding heel','Hips open like a door','Smooth weight transfer']},
-{id:'bcross',st:'F',n:'Backward crossovers',d:4,req:['bstride','crossfwd'],desc:'Cross the front skate over while skating backwards around a curve.',cues:['The under-push is the power','Look into the circle','Hips low and level']},
-{id:'powerslide',st:'F',n:'Powerslide',d:4,req:['bstride','mohawk'],desc:'Skate backwards, then open into a sideways slide on the leading skate to stop.',cues:['Commit your weight to the sliding leg','Lead with the shoulders','Learn it on smooth ground']},
-{id:'smallobst',st:'F',n:'Hop over an obstacle',d:2,req:['hop'],desc:'Clear a small object, like a shoe or a stick, while rolling.',cues:['Pick your take-off spot','Lift the knees, don’t just pull the feet up','Look past the object']},
-// Cruising & fitness
-{id:'rough',st:'C',n:'Rolling on rough ground',d:2,req:['stride'],surf:['rough','smooth','park'],desc:'Stay loose over cracks, pebbles and patched asphalt.',cues:['Lower stance, one foot slightly ahead','Weight back a touch over cracks','Soft knees are your suspension']},
-{id:'longstride',st:'C',n:'Long efficient stride',d:2,req:['glide1'],desc:'Fewer, longer pushes with a full glide on each foot.',cues:['Glide until speed drops, then push','Full extension, low recovery','Count strides per lap and cut the number']},
-{id:'endurance',st:'C',n:'Steady endurance skate',d:2,req:['stride'],desc:'Twenty minutes or more at a steady effort, holding form as you tire.',cues:['Conversation pace','Check your knee bend every lap','Drink water']},
-{id:'curbdrop',st:'C',n:'Rolling off a curb',d:2,req:['hop','stance'],need:['curb'],desc:'Roll off a curb without slowing down or stepping.',cues:['Staggered stance, front foot leads off','Bend as you drop to absorb','Stay over your feet']},
-{id:'hills',st:'C',n:'Hill speed control',d:3,req:['parallel','tstop'],need:['slope'],desc:'Use slalom turns and drags to stay in control going downhill.',cues:['Wide carves scrub speed','Never outrun your stopping ability','Start on gentle slopes']},
-{id:'intervals',st:'C',n:'Sprint intervals',d:3,req:['longstride','crossfwd'],need:['space'],desc:'Short hard efforts with easy recovery laps.',cues:['8 × 20 seconds hard, 40 easy','Stay low on the sprints','Crossovers through the corners']},
-{id:'doublepush',st:'C',n:'Double push',d:4,req:['longstride','edges'],eq:['inline'],desc:'Each stroke sweeps in under the body on the outside edge, then pushes out on the inside edge.',cues:['Start the stroke on the outside edge under you','Roll onto the inside edge and push out','Relaxed, rhythmic upper body']},
-// Park
-{id:'bank',st:'P',n:'Rolling a bank or small quarter',d:2,req:['stance','bswizzle'],need:['quarter|miniramp|bowl'],desc:'Roll partway up, stall, and come back down backwards (fakie).',cues:['Lean into the ramp, not away from it','Look back as you come down','Go a little higher each time']},
-{id:'pump',st:'P',n:'Pumping transitions',d:3,req:['bank'],need:['miniramp|bowl|quarter'],desc:'Gain speed by compressing into the flat and extending up the wall.',cues:['Compress at the bottom, extend up the wall','Timing beats strength','Count how many pumps you can link']},
-{id:'dropin',st:'P',n:'Drop in',d:3,req:['bank'],need:['quarter|miniramp|bowl'],desc:'Start on the coping and roll into the ramp.',cues:['Back skate on the coping, front skate over the edge','Commit your weight forward','Look down the ramp, not at your feet']},
-{id:'wallturn',st:'P',n:'Kick turn on the wall',d:3,req:['pump','twofootturn'],need:['quarter|miniramp|bowl'],desc:'Turn at the top of the transition and come back down forwards.',cues:['Rotate the shoulders at the peak','Turn at the slowest point','Start low on the wall']},
-{id:'stall',st:'P',n:'Stall on the coping',d:3,req:['dropin','pump'],need:['quarter|miniramp|bowl'],desc:'Ride up, stall on the coping, and drop back in.',cues:['Unweight as you reach the top','Set the skates on the deck or coping','Re-enter like a drop in']},
-{id:'carve',st:'P',n:'Carving the bowl',d:4,req:['pump','crossfwd'],need:['bowl'],desc:'Link pumps and carves around the walls of a bowl.',cues:['Look to the next wall','Pump through the corners','Tight crossovers in the shallow end']},
-{id:'air180',st:'P',n:'180 air on a quarter',d:4,req:['wallturn','j180'],need:['quarter|miniramp|bowl'],desc:'Leave the coping, rotate 180° and land back into the ramp.',cues:['Carry speed, pop straight up','Rotate with the head and shoulders','Land on the transition, not the flat']},
-{id:'copinggrind',st:'P',n:'Coping grind',d:4,req:['stall','frontside'],eq:['grind'],need:['quarter|miniramp|bowl'],desc:'Lock onto the coping and slide along it before dropping back in.',cues:['Lock the grind plate onto the coping','Stay over the top, don’t lean back','Start slow']},
-{id:'air360',st:'P',n:'360 air',d:5,req:['air180','jump360'],need:['quarter|miniramp|bowl'],desc:'A full rotation out of the ramp and back in.',cues:['More speed than the 180','Wind up before the lip','Spot the landing over your shoulder']},
-// Street
-{id:'curbhop',st:'S',n:'Hop up a curb',d:2,req:['hop'],need:['curb'],desc:'Hop onto a curb while rolling, landing on both skates.',cues:['Approach square to the curb','Lift knees high','Land with weight centred']},
-{id:'gap',st:'S',n:'Gap jump',d:3,req:['smallobst'],desc:'Jump for distance across a gap you mark out (chalk lines, two bags).',cues:['Speed does the work, not the jump','Extend in the air, tuck to land','Widen the gap slowly']},
-{id:'j180',st:'S',n:'Flat 180 jump',d:3,req:['hop','twofootturn'],desc:'Jump, rotate 180° and land rolling backwards.',cues:['Wind up the shoulders, then release','Spot your landing','Land on both skates, knees bent']},
-{id:'jump360',st:'S',n:'Flat 360 jump',d:4,req:['j180'],desc:'A full rotation jump on flat ground.',cues:['Tight arms speed up rotation','Head leads, body follows','Land on a slight curve, not dead straight']},
-{id:'frontside',st:'S',n:'Frontside grind',d:3,req:['curbhop'],eq:['grind'],need:['ledge|curb'],desc:'Lock both skates across a ledge and slide.',cues:['Approach at a slight angle','Land both skates at once','Look at the end of the ledge']},
-{id:'soul',st:'S',n:'Soul grind',d:4,req:['frontside','glide1'],eq:['inline','grind'],need:['ledge|curb'],desc:'Front skate grinds on the H-block, back skate on the soul plate.',cues:['Back foot on the soul plate','Hips over the ledge','Keep the front foot flat']},
-{id:'royale',st:'S',n:'Royale',d:4,req:['frontside'],eq:['inline','grind'],need:['ledge|curb'],desc:'Front skate on the H-block, back foot’s outside soul plate behind you.',cues:['Back knee turned out','Weight over the front skate','Start on a low curb']},
-{id:'stairs',st:'S',n:'Rolling down stairs',d:4,req:['curbdrop','hop'],need:['stairs'],desc:'Ride down a short stair set staying loose over each step.',cues:['Staggered stance, weight back slightly','Let the knees absorb each step','Start with 2–3 stairs']},
-{id:'rail',st:'S',n:'Rail grind',d:5,req:['frontside'],eq:['grind'],need:['rail'],desc:'Frontside on a round rail.',cues:['Grind a low rail or ledge edge first','Commit and lock in','Hands out, eyes on the end']},
-{id:'stairgap',st:'S',n:'Jumping a stair set',d:5,req:['stairs','gap'],need:['stairs'],desc:'Clear a stair set in one jump.',cues:['Pick a set you can already roll','Pop off the last flat section','Land with knees deeply bent']},
-// Dance & artistic
-{id:'rhythm',st:'D',n:'Skating to the beat',d:2,req:['stride','swizzle'],desc:'Time strides and swizzles to music, changing moves on the beat.',cues:['Count the 8-count out loud','One move per phrase','Stay relaxed in the upper body']},
-{id:'heeltoe',st:'D',n:'Heel-toe roll',d:2,req:['glide1'],desc:'Roll with one skate on its heel and the other on its toe.',cues:['Stagger the feet a skate-length apart','Hold the angle steady','Practise both leads']},
-{id:'crazylegs',st:'D',n:'Crazy legs',d:3,req:['swizzle','heeltoe'],smooth:1,desc:'Alternating heel-toe swizzle footwork, a jam skating staple.',cues:['Small fast movements','Toes in, heels out, swap','Bounce with the knees']},
-{id:'shootduck',st:'D',n:'Shoot the duck',d:3,req:['glide1','stance'],desc:'Glide on one deeply bent leg with the other extended forward.',cues:['Sink slowly, hands forward','Extended leg straight, heel up','Build depth over sessions']},
-{id:'spin2',st:'D',n:'Two-foot spin',d:3,req:['edges','twofootturn'],smooth:1,desc:'Spin in place on both skates.',cues:['Wind up, then pull the arms in','Weight on the balls of the feet','Spot a point to avoid dizziness']},
-{id:'toespin',st:'D',n:'Toe-stop spin',d:3,req:['toedrag','spin2'],eq:['toe'],smooth:1,desc:'Spin on the toe stops.',cues:['Rise up onto the toes from a two-foot spin','Keep the knees together','Short spins, clean exit']},
-{id:'threeturn',st:'D',n:'Three-turn',d:4,req:['mohawk','edges'],smooth:1,desc:'One-foot turn from forward to backward, tracing a 3 on the floor.',cues:['Check the shoulders against the turn','Rise as you turn, sink after','Start from a slow forward edge']},
-{id:'spreadeagle',st:'D',n:'Spread eagle',d:4,req:['edges','mohawk'],smooth:1,desc:'Glide on both skates heels-in, toes pointing outward.',cues:['Open from the hips','Chest up, weight centred','Short holds at first']},
-{id:'grapevine',st:'D',n:'Grapevine',d:4,req:['bstride','twofootturn','crazylegs'],smooth:1,desc:'Weaving footwork that turns between forward and backward continuously.',cues:['Feet trace an S along the floor','Turn from the hips','Slow the count down to learn it']},
-{id:'waltz',st:'D',n:'Waltz jump',d:4,req:['threeturn','hop'],smooth:1,desc:'Half-rotation jump from a forward outside edge to a back outside edge.',cues:['Swing the free leg through','Land on the opposite foot','Check the arms on landing']},
-{id:'scratch',st:'D',n:'One-foot spin',d:5,req:['spin2','threeturn'],smooth:1,desc:'Centred spin on one skate (scratch spin).',cues:['Enter from a back outside edge','Free leg crosses in to speed up','Arms pull in last']},
-// Slalom & freestyle
-{id:'fish',st:'L',n:'Forward fish',d:2,req:['swizzle'],need:['cones'],smooth:1,desc:'Swizzle through a cone line, both skates on either side of each cone.',cues:['Cones 80 cm apart to start','Small swizzles, eyes ahead','Keep a steady rhythm']},
-{id:'crisscross',st:'L',n:'Criss-cross',d:3,req:['fish'],need:['cones'],smooth:1,desc:'Cross and uncross the skates around alternate cones.',cues:['Cross on one cone, open on the next','Stay tall, knees soft','Small pushes for speed']},
-{id:'snake',st:'L',n:'Snake',d:3,req:['fish','edges'],need:['cones'],smooth:1,desc:'Skates in line, one behind the other, weaving through the cones.',cues:['Front skate leads the line','Hips drive the weave','Both skates follow the same track']},
-{id:'backfish',st:'L',n:'Backward fish',d:3,req:['fish','bswizzle'],need:['cones'],smooth:1,desc:'The fish, rolling backwards.',cues:['Look over the shoulder down the line','Small, even lemons','Start with wider cone spacing']},
-{id:'heelwheel',st:'L',n:'Heel wheeling',d:4,req:['heeltoe','glide1'],eq:['inline'],smooth:1,desc:'Roll on the back wheels of both skates.',cues:['Toes up, knees soft','Arms forward for balance','Short distances, then longer']},
-{id:'onefoot',st:'L',n:'One-foot slalom',d:4,req:['snake','glide1'],need:['cones'],smooth:1,desc:'Weave the line on a single skate.',cues:['Switch edges at each cone','Free leg stays close','Wider spacing first']},
-{id:'backcross',st:'L',n:'Backward criss-cross',d:4,req:['crisscross','backfish'],need:['cones'],smooth:1,desc:'The criss-cross, rolling backwards.',cues:['Look back down the line','Cross from the hips','Steady, even tempo']},
-{id:'eagle',st:'L',n:'Eagle',d:4,req:['snake','spreadeagle'],need:['cones'],smooth:1,desc:'Spread-eagle position travelling through the cones.',cues:['Open hips before the first cone','Steer by shifting weight','Keep the heels facing each other']},
-// Off-skate
-{id:'squat',st:'O',n:'Bodyweight squats',d:1,req:[],sup:['stance','stride','hop'],desc:'3 × 15, slow down and quick up. The skating position under load.',cues:['Chest up, knees track over toes','Hips back like sitting','Hold the bottom for a second']},
-{id:'wallsit',st:'O',n:'Wall sit',d:1,req:[],sup:['stance','shootduck','endurance'],desc:'Hold a skating-depth sit against a wall. 3 × 45 seconds.',cues:['Thighs near parallel','Breathe steadily','Add time each week']},
-{id:'balance',st:'O',n:'Single-leg balance',d:1,req:[],sup:['glide1','edges','tstop'],desc:'Stand on one leg for 30 seconds, then with eyes closed.',cues:['Soft knee, hip level','Eyes closed is the progression','Both sides']},
-{id:'calf',st:'O',n:'Calf raises & ankle mobility',d:1,req:[],sup:['edges','bank','heeltoe'],desc:'Slow calf raises plus knee-to-wall ankle stretches.',cues:['3 × 15 raises, slow lower','Knee-to-wall stretch, 10 each side','Ankle circles']},
-{id:'bridge',st:'O',n:'Glute bridges & band walks',d:1,req:[],sup:['stride','crossfwd','edges'],desc:'Bridges plus side steps with a resistance band: the push muscles.',cues:['Squeeze at the top of the bridge','Band above knees, stay low on side steps','2 × 15 each']},
-{id:'plank',st:'O',n:'Plank & side plank',d:1,req:[],sup:['stance','spin2','powerslide'],desc:'Core holds that keep your upper body quiet on skates.',cues:['Straight line from head to heels','3 × 30 seconds each','Don’t hold your breath']},
-{id:'stretch',st:'O',n:'Hip & hamstring mobility',d:1,req:[],sup:['spreadeagle','shootduck','powerslide'],desc:'Hip flexor, hamstring and adductor stretches after skating.',cues:['30 seconds per stretch','Ease in, never bounce','Both sides']},
-{id:'fallpractice',st:'O',n:'Fall rolls on a mat',d:1,req:[],sup:['fall','stairs','dropin'],desc:'Practise knee slides and shoulder rolls on a soft surface.',cues:['Wear pads','Get low before you go down','Roll, don’t brace']},
-{id:'lateral',st:'O',n:'Lateral lunges',d:1,req:['squat'],sup:['crossfwd','bcross','longstride'],desc:'Side-to-side lunges that copy the push of a stride.',cues:['Sit back into the bent leg','Straight leg toes forward','10 each side']},
-{id:'slsquat',st:'O',n:'Single-leg box squat',d:2,req:['squat','balance'],sup:['glide1','shootduck','onefoot'],desc:'Sit down to a box on one leg and stand back up.',cues:['Control the way down','Knee tracks over the foot','Lower box as you improve']},
-{id:'skaterhop',st:'O',n:'Skater bounds',d:2,req:['lateral'],sup:['stride','crossfwd','longstride','intervals'],desc:'Bound side to side, landing on one leg and sticking it.',cues:['Land soft and hold one second','Swing the arms across','3 × 10']},
-{id:'bosu',st:'O',n:'Balance board drills',d:2,req:['balance'],sup:['glide1','frontside','soul','heeltoe'],desc:'Balance board or cushion: two-foot then one-foot holds.',cues:['Near a wall at first','Small squats while balanced','30-second sets']},
-{id:'spinsock',st:'O',n:'Spin & spotting drill',d:2,req:['balance'],sup:['spin2','scratch','toespin','threeturn'],desc:'Turns in socks on a smooth floor, practising spotting.',cues:['Fix your eyes on one point','Whip the head round last','Both directions']},
-{id:'tuck',st:'O',n:'Tuck jumps',d:3,req:['squat','skaterhop'],sup:['hop','curbhop','smallobst','gap'],desc:'Explosive jumps pulling the knees to the chest.',cues:['Land quietly','Reset between reps','3 × 6']},
-{id:'shoe180',st:'O',n:'180 & 360 jumps in shoes',d:3,req:['tuck'],sup:['j180','jump360','air180','waltz'],desc:'Rotation jumps on the spot to learn the timing off skates.',cues:['Rotate with the head first','Stick the landing','Both directions']},
-{id:'pistol',st:'O',n:'Pistol squat progression',d:4,req:['slsquat'],sup:['shootduck','onefoot'],desc:'Work toward a full one-leg squat.',cues:['Hold a doorframe for support','Counterbalance with arms forward','Lower the support over weeks']}
-];
+// Skills come from data/skills.json; the readable field names there map onto the short ones the app uses
+const STYLE_ID={foundations:'F',cruising:'C',park:'P',street:'S',dance:'D',slalom:'L','off-skate':'O'};
+const SKILLS=CATALOG.skills.map(s=>({id:s.id,st:STYLE_ID[s.style],n:s.name,d:s.difficulty,req:s.requires||[],sup:s.supports,eq:s.skates,
+  need:s.needs&&s.needs.map(o=>o.join('|')),surf:s.surfaces,smooth:s.smoothGround?1:undefined,desc:s.description,cues:s.cues||[]}));
 const BYID=Object.fromEntries(SKILLS.map(s=>[s.id,s]));
 const CHILDREN={}; SKILLS.forEach(s=>s.req.forEach(r=>(CHILDREN[r]=CHILDREN[r]||[]).push(s.id)));
 const SUPPORTED_BY={}; SKILLS.forEach(s=>(s.sup||[]).forEach(t=>(SUPPORTED_BY[t]=SUPPORTED_BY[t]||[]).push(s.id)));
@@ -1076,8 +1003,10 @@ if(driveConfigured()&&Drive.on){
   if(driveLive()) driveSync(false);   // pick up changes made on other devices
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&driveLive()) driveSync(false)});
 }
+})();
 </script>
 
 <script src="https://petravanta.github.io/general/shared/hub-link.js" defer></script>
+<script src="https://petravanta.github.io/general/shared/theme-switch.js" defer></script>
 </body>
 </html>
