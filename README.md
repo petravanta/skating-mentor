@@ -43,7 +43,7 @@ It's a static page, `index.html` plus the skill list in `data/skills.json`, with
 
 Under *Settings → Google Drive*, **Connect Google Drive** signs you in with Google and keeps a file called `Skating Mentor data.json` in your Drive. It saves a few seconds after each change. When you connect on another device, the app merges both: every logged session is kept, and the most recently edited skates, spots and styles win. The app uses the `drive.file` permission, which means it can only see the file it creates, not the rest of your Drive.
 
-Google sign-ins only last about an hour. The app keeps the sign-in across reloads, and when it's close to running out it renews it the next time you tap something (Google may flash a window that closes by itself). If it does lapse, for example after a long break, tap **Resume Drive sync** in the header. Everything still saves in the browser in the meantime.
+Google sign-ins only last about an hour. The app keeps the sign-in across reloads and shares it with petravanta's other apps on the same browser, and when it's close to running out it renews it the next time you tap something (Google may flash a window that closes by itself). If it does lapse, for example after a long break, tap **Resume Drive sync** in the header. Everything still saves in the browser in the meantime.
 
 ### One-time setup (for whoever hosts the app)
 
