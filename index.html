@@ -373,27 +373,70 @@ async function removeLog(id){
   if(backend==='cloud'){try{await logsCol.doc(id).delete()}catch(e){toast('Couldn’t delete from your account.')}}
 }
 /* ---------------- Google Drive sync ---------------- */
+/* ===== Google sign-in shared by petravanta's apps =====
+   Canonical copy: https://github.com/petravanta/general/blob/main/shared/google-token.js (see STANDARDS.md, "Staying connected to Google Drive").
+   Every app lives on petravanta.github.io and uses the same OAuth client, so a Drive token one app gets works in all of them.
+   This keeps that token where every app can see it (localStorage key petravanta.google), one per Google account, so
+   reconnecting in one app reconnects them all, and an app only ever uses the token of the account it connected with.
+   Google gives a static site no refresh token: a token lasts an hour, and getting a new one opens Google's window,
+   which browsers only allow right after a tap. With the account's email as a hint, that window closes by itself. */
+const GoogleToken=(()=>{
+  const KEY='petravanta.google', SCOPE='https://www.googleapis.com/auth/drive.file';
+  const read=()=>{try{return JSON.parse(localStorage.getItem(KEY)||'null')||{}}catch(e){return {}}};
+  const write=v=>{try{localStorage.setItem(KEY,JSON.stringify(v))}catch(e){}};
+  const subs=[];
+  // Another tab or app on this site got a token: let this one pick it up without a tap
+  window.addEventListener('storage',e=>{if(e.key===KEY) subs.forEach(f=>{try{f()}catch(_){}})});
+  function gis(){return new Promise((res,rej)=>{
+    if(window.google&&google.accounts&&google.accounts.oauth2) return res();
+    const s=document.createElement('script'); s.src='https://accounts.google.com/gsi/client'; s.onload=res; s.onerror=()=>rej({code:'offline'}); document.head.appendChild(s)})}
+  // A token for this account with time left on it, or null
+  function get(email){const t=email&&(read().tokens||{})[email]; return t&&t.exp>Date.now()?t:null}
+  // o: {clientId, hint:'email to suggest', prompt:'' | 'select_account' | 'consent'}. Call from a tap. Resolves {token, exp, email}.
+  function request(o){return new Promise(async(res,rej)=>{
+    try{await gis()}catch(e){return rej(e)}
+    google.accounts.oauth2.initTokenClient({client_id:o.clientId,scope:SCOPE,login_hint:o.hint||undefined,error_callback:rej,
+      callback:async r=>{
+        if(r.error) return rej(r);
+        const t={token:r.access_token,exp:Date.now()+(Number(r.expires_in||3600)-60)*1000};
+        // Which account it is, so the token is filed under the right one
+        let email='';
+        try{const j=await (await fetch('https://www.googleapis.com/drive/v3/about?fields=user(emailAddress)',{headers:{Authorization:'Bearer '+t.token}})).json(); email=(j.user&&j.user.emailAddress)||''}catch(e){}
+        if(!email) email=o.hint||'';
+        if(email){
+          const v=read(), now=Date.now(); v.tokens=v.tokens||{};
+          for(const k in v.tokens) if(!(v.tokens[k].exp>now)) delete v.tokens[k];
+          v.tokens[email]=t; v.last=email; write(v);
+        }
+        res({...t,email});
+      }
+    }).requestAccessToken({prompt:o.prompt||''});
+  })}
+  // Signing out on this browser. Google's permission stays, since the other apps and devices still use it.
+  function forget(email){const v=read(); if(v.tokens&&email) delete v.tokens[email]; write(v)}
+  return {get,request,forget,gis,onChange:f=>subs.push(f),get lastEmail(){return read().last||''}};
+})();
+/* ===== end Google sign-in ===== */
 // Uses the drive.file scope, so the app can only see the one file it creates.
 const DRIVE_FILE='Skating Mentor data.json', DAPI='https://www.googleapis.com';
-const Drive={token:null,exp:0,fileId:lsGet('sm.driveFile'),on:!!lsGet('sm.driveOn'),busy:false,last:null,timer:null,err:null,lastAsk:0};
-// Keep the short-lived Google token across reloads so reopening the app doesn't pause sync
-(()=>{const t=lsGet('sm.driveTok'); if(Drive.on&&t&&t.exp>Date.now()){Drive.token=t.token;Drive.exp=t.exp}})();
+const Drive={token:null,exp:0,fileId:lsGet('sm.driveFile'),on:!!lsGet('sm.driveOn'),busy:false,last:null,timer:null,err:null,lastAsk:0,email:lsGet('sm.driveEmail')||''};
+// The app's own token from before tokens were shared (GoogleToken above); good until it runs out
+(()=>{const t=lsGet('sm.driveTok'); if(Drive.on&&t&&t.exp>Date.now()){Drive.token=t.token;Drive.exp=t.exp} try{localStorage.removeItem('sm.driveTok')}catch(e){}})();
 const driveConfigured=()=>!!GOOGLE_CLIENT_ID;
-const driveLive=()=>!!Drive.token&&Date.now()<Drive.exp;
-function loadGis(){return new Promise((res,rej)=>{
-  if(window.google&&google.accounts&&google.accounts.oauth2) return res();
-  const sc=document.createElement('script'); sc.src='https://accounts.google.com/gsi/client'; sc.onload=res; sc.onerror=()=>rej(new Error('gis')); document.head.appendChild(sc)})}
-function driveToken(){return new Promise(async(res,rej)=>{
-  try{await loadGis()}catch(e){return rej(e)}
-  const c=google.accounts.oauth2.initTokenClient({client_id:GOOGLE_CLIENT_ID,scope:'https://www.googleapis.com/auth/drive.file',
-    callback:r=>{if(r.error) return rej(r); Drive.token=r.access_token; Drive.exp=Date.now()+(Number(r.expires_in||3600)-60)*1000; lsSet('sm.driveTok',{token:Drive.token,exp:Drive.exp}); res()},
-    error_callback:rej});
-  c.requestAccessToken({prompt:Drive.on?'':'consent'});
-})}
+const driveLive=()=>{
+  const g=GoogleToken.get(Drive.email); if(g&&g.exp>Drive.exp){Drive.token=g.token;Drive.exp=g.exp}
+  return !!Drive.token&&Date.now()<Drive.exp;
+};
+// Opens Google's window, so call it from a tap. A first connect suggests the account the other apps use; after that, this app's account.
+async function driveToken(){
+  const r=await GoogleToken.request({clientId:GOOGLE_CLIENT_ID,hint:Drive.email||(Drive.on?'':GoogleToken.lastEmail),prompt:Drive.on||GoogleToken.lastEmail?'':'consent'});
+  Drive.token=r.token; Drive.exp=r.exp;
+  if(r.email&&r.email!==Drive.email){Drive.email=r.email; lsSet('sm.driveEmail',r.email)}
+}
 async function dfetch(path,opt={}){
   if(!driveLive()) throw {code:'expired'};
   const r=await fetch(DAPI+path,{...opt,headers:{...(opt.headers||{}),Authorization:'Bearer '+Drive.token}});
-  if(r.status===401){Drive.token=null; lsSet('sm.driveTok',null); throw {code:'expired'}}
+  if(r.status===401){Drive.token=null; Drive.exp=0; GoogleToken.forget(Drive.email); throw {code:'expired'}}
   if(!r.ok) throw {code:'http',status:r.status};
   return r;
 }
@@ -465,8 +508,9 @@ function driveSoon(){
   },3000);
 }
 function driveDisconnect(){
-  if(Drive.token&&window.google&&google.accounts&&google.accounts.oauth2) google.accounts.oauth2.revoke(Drive.token,()=>{});
-  Drive.token=null; Drive.on=false; Drive.err=null; lsSet('sm.driveOn',false); lsSet('sm.driveTok',null); setSaveState('Saved in this browser'); render();
+  // Forget the sign-in on this browser only: Google's permission stays for the other apps and devices
+  GoogleToken.forget(Drive.email);
+  Drive.token=null; Drive.exp=0; Drive.email=''; Drive.on=false; Drive.err=null; lsSet('sm.driveOn',false); lsSet('sm.driveEmail',null); setSaveState('Saved in this browser'); render();
 }
 function drivePanel(){
   if(!driveConfigured()) return `<p class="small muted">Google Drive sync isn\u2019t set up for this copy of the app yet.</p>`;
@@ -952,9 +996,11 @@ async function setBaseline(skill,lv){
 // and for an account that already agreed Google's window closes by itself.
 document.addEventListener('click',e=>{
   if(!driveConfigured()||!Drive.on||Drive.busy||e.target.closest('[data-act^="drive"],#driveResume')) return;
-  if(Drive.exp-Date.now()>10*60000||Date.now()-Drive.lastAsk<5*60000) return;
+  driveLive(); if(Drive.exp-Date.now()>10*60000||Date.now()-Drive.lastAsk<5*60000) return;
   Drive.lastAsk=Date.now(); driveToken().then(()=>driveSync(false)).catch(()=>showDriveStatus());
 },true);
+// Another app or tab reconnected this account: carry on with its token
+GoogleToken.onChange(()=>{if(driveConfigured()&&Drive.on&&driveLive()) driveSync(false); else showDriveStatus()});
 document.addEventListener('click',async e=>{
   const t=e.target.closest('button,[data-open],[data-close]'); if(!t) return;
   const d=t.dataset;
@@ -1031,7 +1077,7 @@ setSaveState(backend==='cloud'?'Saved to your account':'Connecting…');
 initCloud();
 showDriveStatus();
 if(driveConfigured()&&Drive.on){
-  loadGis().catch(()=>{});            // ready for the next tap-to-renew
+  GoogleToken.gis().catch(()=>{});    // ready for the next tap-to-renew
   if(driveLive()) driveSync(false);   // pick up changes made on other devices
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&driveLive()) driveSync(false)});
 }
