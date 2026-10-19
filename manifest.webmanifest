@@ -2,7 +2,7 @@
   "name": "Skating Mentor",
   "short_name": "Skating",
   "description": "A map of skating skills to learn, with drills and your progress on each.",
-  "id": "./",
+  "id": "/skating-mentor/",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
