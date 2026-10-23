@@ -10,7 +10,7 @@ It runs in any modern browser on phone or desktop, with no sign-up. To get start
 
 1. Go to **Skates, spots & styles** and edit the example skates and spots to match yours, and pick the styles you care about.
 2. Open **Skill map → List & set levels** and mark the skills you already have, so suggestions start at your level.
-3. On **Today**, choose your skates, spot, time and focus. After each drill, tap how it went.
+3. On **Today**, choose your skates, spot, time and focus. Remove drills with ×, add your own from **Add an exercise** (or *Add to today's session* on any skill), and tick **Done** or tap how it went as you finish each one.
 
 Your progress stays in your browser. On a phone, use *Add to Home Screen* to open it like an app. Google Drive sync is optional; while the app's Google sign-in is in testing mode, it only works for Google accounts the owner has added as test users.
 
