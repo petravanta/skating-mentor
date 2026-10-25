@@ -93,7 +93,9 @@ textarea{resize:vertical}
 .item .slot b{display:block;font-family:var(--f-mono);font-size:18px;font-weight:500}
 .item .slot span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 .role{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em}
-.role.warm{color:var(--lv-dev)} .role.work{color:var(--lv-learn)} .role.new{color:var(--accent)} .role.review{color:var(--lv-conf)} .role.off{color:var(--muted)}
+.role.warm{color:var(--lv-dev)} .role.work{color:var(--lv-learn)} .role.new{color:var(--accent)} .role.review{color:var(--lv-conf)} .role.off{color:var(--muted)} .role.fav{color:var(--accent)}
+.star{background:none;border:0;padding:0 4px;font-size:19px;line-height:1;color:var(--faint)}.star:hover,.star[aria-pressed="true"]{color:var(--accent)}
+.btn .star-ico{color:var(--accent)}
 .item .name{font-weight:700;font-size:17px;background:none;border:0;padding:0;text-align:left;color:var(--ink)}
 .item .name:hover{text-decoration:underline;text-decoration-color:var(--accent)}
 .item .why{color:var(--muted);font-size:14px}
@@ -161,12 +163,12 @@ textarea{resize:vertical}
 .colhead{fill:var(--faint);font-family:var(--f-mono);font-size:10.5px;letter-spacing:.08em}
 /* list */
 .slist{display:flex;flex-direction:column}
-.srow{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
+.srow{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
 .srow:last-child{border-bottom:0}
 .srow .nm{background:none;border:0;padding:0;text-align:left;font-weight:600;color:var(--ink)}
 .dots{font-family:var(--f-mono);color:var(--faint);font-size:12px;letter-spacing:1px}
 .srow select{font-size:13px;padding:4px 6px}
-@media (max-width:520px){.srow{grid-template-columns:minmax(0,1fr) auto}.srow .dots{display:none}}
+@media (max-width:520px){.srow{grid-template-columns:auto minmax(0,1fr) auto}.srow .dots{display:none}}
 /* drawer */
 .scrim{position:fixed;inset:0;background:rgba(10,16,20,.35);z-index:40}
 .drawer{position:fixed;z-index:41;top:0;right:0;bottom:0;width:min(420px,100%);background:var(--surface);border-left:1px solid var(--line);overflow-y:auto;
@@ -311,6 +313,7 @@ function defaultProfile(){return{
          {id:'sp4',name:'Riverside path',surface:'rough',features:['space','curb','slope']},
          {id:'sp5',name:'Home',surface:'home',features:[]}],
   ctx:{skate:'sk1',spot:'sp1',minutes:45,focus:'balanced'},
+  favs:[],   // starred skill ids: your priorities, given extra room in each session
   examples:true
 };}
 let state={profile:defaultProfile(),logs:[],photos:{},deleted:[]};
@@ -603,6 +606,14 @@ function blocker(s,skate,spot){
   return null;
 }
 const styleOn=s=>s.st==='F'||state.profile.styles.includes(s.st);
+const favs=()=>Array.isArray(state.profile.favs)?state.profile.favs:(state.profile.favs=[]);
+const isFav=id=>favs().includes(id);
+function toggleFav(id){
+  const f=favs(), i=f.indexOf(id); i>=0?f.splice(i,1):f.push(id);
+  saveProfile(); render();
+  toast(i>=0?`${BYID[id].n} is no longer a priority`:`${BYID[id].n} is a priority. It’ll come up in most sessions.`);
+}
+const star=id=>{const on=isFav(id);return `<button class="star" data-fav="${id}" aria-pressed="${on}" aria-label="${on?'Remove '+esc(BYID[id].n)+' from priorities':'Make '+esc(BYID[id].n)+' a priority'}" title="${on?'Priority. Tap to remove':'Make it a priority'}">${on?'★':'☆'}</button>`};
 
 /* ---------------- Recommender ---------------- */
 function hash(str){let h=2166136261;for(const ch of str){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)}return (h>>>0)/4294967296}
@@ -623,12 +634,15 @@ function buildPlan(seed,keep=[]){
   const kept=new Set(keep.map(it=>it.id)), mins=Math.max(0,+ctx.minutes-keep.reduce((a,it)=>a+it.mins,0));
   const cands=[], elsewhere=[];
   for(const s of SKILLS){
-    if(!styleOn(s)||!unlocked(s)||kept.has(s.id)) continue;
+    // your priorities come along even when they're locked or in a style you've turned off: you picked them
+    const fav=isFav(s.id);
+    if(!fav&&(!styleOn(s)||!unlocked(s))||kept.has(s.id)) continue;
     const c=conf(s.id), info=CONF[s.id];
     let kind=c===0?'new':c<70?'work':(info&&info.days>21)||c<85?'review':'solid';
-    if(s.st==='O'){cands.push({s,kind,score:0,off:true});continue}
+    if(fav&&kind==='solid') kind='review';
+    if(s.st==='O'){cands.push({s,kind,score:0,off:true,fav});continue}
     const b=blocker(s,skate,spot);
-    if(b){ if(kind==='new'||kind==='work') elsewhere.push({s,b,kind}); continue }
+    if(b){ if(fav||kind==='new'||kind==='work') elsewhere.push({s,b,kind,fav}); continue }
     let score=0, why='';
     const lev=[...descendants(s.id)].filter(x=>styleOn(BYID[x])).length;
     if(kind==='work'){score=55+(70-c)*0.25+(info.days<10?8:0); why=`At ${c}%. ${info.days<1?'You worked on it today':info.days<10?'Keep the momentum from '+ago(info.last):'Last practised '+ago(info.last)}.`}
@@ -641,7 +655,12 @@ function buildPlan(seed,keep=[]){
     if(s.st!=='F') score+=4;
     const n=s.need?s.need.length:0; if(n) score+=6; // this spot has what it needs, make use of it
     score+=hash(seed+s.id)*10;
-    cands.push({s,kind,score,why});
+    if(fav){
+      // well ahead of everything else, and the longer since you last did it, the sooner it comes back
+      score+=45+Math.min(info?info.days:14,14)*2;
+      why='One of your priorities. '+(unlocked(s)?why:'It builds on '+s.req.filter(r=>conf(r)<UNLOCK).map(r=>BYID[r].n).join(' and ')+', so take it slowly.');
+    }
+    cands.push({s,kind,score,why,fav});
   }
   const items=[], MAX=12;
   // fill the time with short blocks; if there aren't enough skills, give the ones there are a bit longer
@@ -654,23 +673,30 @@ function buildPlan(seed,keep=[]){
     for(const x of offs){
       if(items.length+keep.length>=MAX||left<3) break;
       const m=Math.min(itemMins(x.s,'off'),left); left-=m;
-      items.push({id:x.s.id,role:'off',mins:m,why:offWhy(x.s)});
+      items.push({id:x.s.id,role:'off',mins:m,why:(x.fav?'One of your priorities. ':'')+offWhy(x.s)});
     }
     stretch(mins);
   }else{
     const sk=cands.filter(x=>!x.off).sort((a,b)=>b.score-a.score);
-    const warmPool=sk.filter(x=>(x.kind==='solid'||x.kind==='review')&&x.s.d<=Math.max(2,lvl)).sort((a,b)=>a.s.d-b.s.d||b.score-a.score);
-    const warm=keep.length?null:warmPool[0]||sk.find(x=>x.s.d<=2)||null;
+    // priorities get their own blocks, so they never end up as the warm-up
+    const warmPool=sk.filter(x=>!x.fav&&(x.kind==='solid'||x.kind==='review')&&x.s.d<=Math.max(2,lvl)).sort((a,b)=>a.s.d-b.s.d||b.score-a.score);
+    const warm=keep.length?null:warmPool[0]||sk.find(x=>!x.fav&&x.s.d<=2)||null;
     const maxNew=focus==='new'?Math.max(1,Math.round(mins/25)):(focus==='consolidate'?0:Math.max(1,Math.round(mins/50)));
     const offs=mins>=25?cands.filter(x=>x.off):[];
-    const warmTime=warm?itemMins(warm.s,'warm'):0, offTime=offs.length?6:0;
+    // a second off-skate block on longer days when you have off-skate priorities to fit in
+    const offN=offs.length?(mins>=45&&offs.filter(x=>x.fav).length>=2?2:1):0;
+    const warmTime=warm?itemMins(warm.s,'warm'):0, offTime=offN*6;
     let left=mins-warmTime-offTime;
-    const slots=MAX-keep.length-(warm?1:0)-(offTime?1:0);
+    const slots=MAX-keep.length-(warm?1:0)-offN;
     const picked=[]; let nNew=0;
     const take=x=>{const role=x.kind==='new'?'new':x.kind==='work'?'work':'review';
-      const m=Math.min(itemMins(x.s,role),left); left-=m; picked.push({x,role,m}); if(x.kind==='new') nNew++};
+      const m=Math.min(itemMins(x.s,role),left); left-=m; picked.push({x,role:x.fav?'fav':role,m}); if(x.kind==='new'&&!x.fav) nNew++};
     const isPicked=x=>picked.some(p=>p.x===x);
+    // priorities first: about one for every 15 minutes, up to half the session. With more than fit, the ones you did least recently win.
+    const favCap=Math.min(Math.max(1,Math.round(mins/15)),Math.ceil(slots/2));
+    for(const x of sk){ if(picked.filter(p=>p.x.fav).length>=favCap||picked.length>=slots||left<3) break; if(x.fav&&(!warm||x.s.id!==warm.s.id)) take(x) }
     for(const x of sk){
+      if(isPicked(x)) continue;
       if(picked.length>=slots||left<3) break;
       if(warm&&x.s.id===warm.s.id) continue;
       if(x.kind==='new'&&nNew>=maxNew) continue;
@@ -682,13 +708,13 @@ function buildPlan(seed,keep=[]){
     if(warm) items.push({id:warm.s.id,role:'warm',mins:warmTime,why:(conf(warm.s.id)>0?'Easy start on something you already have. ':'Easy start to get your legs under you. ')+(warm.s.cues[0]||'')+'.'});
     picked.forEach(({x,role,m})=>items.push({id:x.s.id,role,mins:m,why:x.why}));
     stretch(mins-warmTime-offTime);
-    if(offTime){
+    if(offN){
       const focusIds=picked.map(p=>p.x.s.id);
       const ranked=offs.map(x=>({...x,score:offScore(x.s,focusIds,focus,seed)})).sort((a,b)=>b.score-a.score);
-      if(ranked[0]) items.push({id:ranked[0].s.id,role:'off',mins:Math.min(offTime,itemMins(ranked[0].s,'off')),why:'After skating. '+offWhy(ranked[0].s,focusIds)});
+      ranked.slice(0,offN).forEach(x=>items.push({id:x.s.id,role:'off',mins:Math.min(6,itemMins(x.s,'off')),why:'After skating. '+(x.fav?'One of your priorities. ':'')+offWhy(x.s,focusIds)}));
     }
   }
-  elsewhere.sort((a,b)=>(a.kind==='work'?0:1)-(b.kind==='work'?0:1)||a.s.d-b.s.d);
+  elsewhere.sort((a,b)=>(b.fav?1:0)-(a.fav?1:0)||(a.kind==='work'?0:1)-(b.kind==='work'?0:1)||a.s.d-b.s.d);
   return {items,elsewhere:elsewhere.slice(0,5),offOnly};
 }
 function offScore(s,focusIds,focus,seed){
@@ -699,6 +725,7 @@ function offScore(s,focusIds,focus,seed){
   sc+=sup.filter(t=>{const k=conf(t);return k>0&&k<70}).length*8;
   sc+=sup.filter(t=>conf(t)===0&&BYID[t]&&unlocked(BYID[t])&&styleOn(BYID[t])).length*3;
   if(focus==='easy') sc-=s.d*4;
+  if(isFav(s.id)){const info=CONF[s.id]; sc+=40+Math.min(info?info.days:14,14)*2}
   return sc+hash(seed+s.id)*8;
 }
 function offWhy(s,focusIds){
@@ -772,11 +799,11 @@ function viewToday(){
   const pickGroups=Object.keys(STYLES).filter(k=>byStyle(k).length).map(k=>`<optgroup label="${esc(STYLES[k].n)}">${byStyle(k).map(s=>`<option value="${s.id}">${esc(s.n)}${unlocked(s)?'':' (not unlocked yet)'}</option>`).join('')}</optgroup>`).join('');
   const items=plan.items.map((it,i)=>{
     const s=BYID[it.id], done=it.done;
-    const roleName={warm:'Warm-up',work:'Keep building',new:'New skill',review:'Review',off:'Off-skate',pick:'Your pick'}[it.role];
+    const roleName={warm:'Warm-up',work:'Keep building',new:'New skill',review:'Review',off:'Off-skate',pick:'Your pick',fav:'Priority'}[it.role];
     return `<article class="item${done?' done':''}">
       <div class="slot"><b>${it.mins}</b><span>min</span></div>
       <div class="role ${it.role}">${roleName}${s.st!=='O'?' · '+esc(STYLES[s.st].n):''}</div>
-      <div class="lvl">${pill(s.id)}<button class="rm" data-rmitem="${i}" aria-label="Remove ${esc(s.n)} from today" title="Remove from today">×</button></div>
+      <div class="lvl">${pill(s.id)}${star(s.id)}<button class="rm" data-rmitem="${i}" aria-label="Remove ${esc(s.n)} from today" title="Remove from today">×</button></div>
       <button class="name" data-open="${s.id}">${esc(s.n)}</button>
       <p class="why" style="grid-column:2/span 2">${esc(it.why)}</p>
       <ul style="grid-column:2/span 2">${s.cues.slice(0,s.st==='O'?s.cues.length:2).map(q=>`<li>${esc(q)}</li>`).join('')}</ul>
@@ -784,6 +811,10 @@ function viewToday(){
       <div class="rate">${done&&done.r?`<span class="logged">✓ Done · ${RATINGS[done.r]}</span> <button data-undo="${i}">Undo</button>`:
         `${done?`<span class="logged">✓ Done</span> <button data-undo="${i}">Undo</button> <span class="lbl">Rate it?</span>`:`<button class="mark" data-markdone="${i}">✓ Done</button> <span class="lbl">or how did it go?</span>`}${[1,2,3,4,5].map(r=>`<button data-rate="${r}" data-item="${i}" title="${RATING_HELP[r]}">${RATINGS[r]}</button>`).join('')}`}</div>
     </article>`}).join('');
+  const inPlan=new Set(plan.items.map(it=>it.id));
+  const favRows=favs().filter(id=>BYID[id]).map(id=>{const s=BYID[id], b=blocker(s,skate,spot)||(plan.offOnly&&s.st!=='O'?'needs skates on':null);
+    return `<div class="srow" style="grid-template-columns:auto minmax(0,1fr) auto">${star(id)}<span><button class="nm" data-open="${id}">${esc(s.n)}</button> <span class="muted small">${inPlan.has(id)?'in today’s session':b?esc(b):!unlocked(s)&&conf(id)===0?'not unlocked yet':''}</span></span>
+      ${!inPlan.has(id)&&!b?`<button class="btn sm" data-addplan="${id}">Add</button>`:pill(id)}</div>`}).join('');
   const nearly=SKILLS.filter(s=>styleOn(s)&&s.st!=='O'&&!unlocked(s)&&conf(s.id)===0&&s.req.filter(r=>conf(r)<UNLOCK).length===1)
     .map(s=>({s,r:s.req.find(r=>conf(r)<UNLOCK)})).filter(x=>conf(x.r)>0).slice(0,5);
   return `<div class="stack">
@@ -806,8 +837,11 @@ function viewToday(){
     <div class="plan">${items||`<div class="panel empty">Nothing fits this combination. Try another spot, or turn on more styles under Skates, spots &amp; styles.</div>`}</div>
     ${items&&total<+c.minutes-5&&pickList.length?`<p class="muted small">That’s all that fits your level here for now. Add more below, or repeat the ones above.</p>`:''}
     ${pickList.length?`<label class="field addpick" for="addPick">Add an exercise<select id="addPick" data-addpick="1"><option value="">Choose a skill or exercise…</option>${pickGroups}</select></label>`:''}
+    <section class="panel"><h3>Your priorities</h3>${favRows?`<div class="slist">${favRows}</div>
+      <p class="muted small" style="margin-top:6px">Priorities get first pick of each session’s time, the ones you did least recently first. Changes show up in your next session, or tap Suggest different skills.</p>`:
+      `<p class="muted small" style="margin-top:6px">Tap ☆ on any skill or exercise you want in high rotation. Starred ones get first pick of each session’s time.</p>`}</section>
     <div class="two">
-      ${plan.elsewhere.length?`<section class="panel"><h3>Not possible here</h3><div class="hint-list">${plan.elsewhere.map(x=>`<div><button data-open="${x.s.id}">${esc(x.s.n)}</button> <span class="muted small">${esc(x.b)}</span></div>`).join('')}</div></section>`:''}
+      ${plan.elsewhere.length?`<section class="panel"><h3>Not possible here</h3><div class="hint-list">${plan.elsewhere.map(x=>`<div><button data-open="${x.s.id}">${x.fav?'★ ':''}${esc(x.s.n)}</button> <span class="muted small">${esc(x.b)}</span></div>`).join('')}</div></section>`:''}
       ${nearly.length?`<section class="panel"><h3>Almost unlocked</h3><div class="hint-list">${nearly.map(x=>`<div><button data-open="${x.s.id}">${esc(x.s.n)}</button> <span class="muted small">get ${esc(BYID[x.r].n)} to Developing</span></div>`).join('')}</div></section>`:''}
     </div>
   </div>`;
@@ -872,7 +906,7 @@ function drawMap(){
     const cls=['node',c>0?'l'+lv:ul?'ready':'locked'];
     if(faded.has(id))cls.push('faded'); if(blocker(s,skate,spot)&&s.st!=='O')cls.push('ctxblock');
     if(rel&&!rel.has(id))cls.push('dim'); if(selected===id)cls.push('sel');
-    const name=s.n.length>24?s.n.slice(0,23)+'…':s.n;
+    const nm=(isFav(id)?'★ ':'')+s.n, name=nm.length>24?nm.slice(0,23)+'…':nm;
     nodes+=`<g class="${cls.join(' ')}" data-open="${id}" tabindex="0" role="button" aria-label="${esc(s.n)}">
       <rect class="bg" x="${p.x}" y="${p.y}" width="${W}" height="${H}" rx="8"/>
       <text x="${p.x+10}" y="${p.y+19}">${esc(name)}</text>
@@ -890,7 +924,7 @@ function viewList(){
     const list=SKILLS.filter(s=>s.st===k&&set.has(s.id)); if(!list.length) return '';
     return `<section class="panel"><h3 style="margin-bottom:4px">${esc(v.n)}</h3><div class="slist">${list.map(s=>{
       const lv=levelOf(conf(s.id));
-      return `<div class="srow"><button class="nm" data-open="${s.id}">${esc(s.n)}</button><span class="dots" title="Difficulty">${dots(s.d)}</span>
+      return `<div class="srow">${star(s.id)}<button class="nm" data-open="${s.id}">${esc(s.n)}</button><span class="dots" title="Difficulty">${dots(s.d)}</span>
       <select data-baseline="${s.id}" aria-label="Level for ${esc(s.n)}">${LEVELS.map((L,i)=>`<option value="${i}"${i===lv?' selected':''}>${L.n}</option>`).join('')}</select></div>`}).join('')}</div></section>`;
   }).join('')+`<p class="muted small">Setting a level here records it as a starting point. Logging practice adjusts it from there.</p>`;
 }
@@ -911,7 +945,7 @@ function renderDrawer(){
     <div class="stack" style="gap:8px">
       <div class="role off">${esc(STYLES[s.st].n)} · difficulty <span class="mono">${dots(s.d)}</span></div>
       <h2>${esc(s.n)}</h2>
-      <div class="row">${pill(s.id)}${info?`<span class="muted small">${info.sessions?info.sessions+' session'+(info.sessions===1?'':'s')+' · last '+ago(info.last):'Starting level set '+ago(info.last)}</span>`:''}</div>
+      <div class="row">${pill(s.id)}<button class="btn sm" data-fav="${s.id}" aria-pressed="${isFav(s.id)}"><span class="star-ico">${isFav(s.id)?'★':'☆'}</span> ${isFav(s.id)?'Priority':'Make it a priority'}</button>${info?`<span class="muted small">${info.sessions?info.sessions+' session'+(info.sessions===1?'':'s')+' · last '+ago(info.last):'Starting level set '+ago(info.last)}</span>`:''}</div>
       ${c>0?`<div class="meter"><i style="width:${c}%;background:var(--lv-${['new','learn','dev','conf','solid'][lv]})"></i></div>`:''}
     </div>
     <p>${esc(s.desc)}</p>
@@ -1060,6 +1094,7 @@ document.addEventListener('click',async e=>{
   if(d.tab){tab=d.tab;selected=null;try{sessionStorage.setItem('sm.tab',tab)}catch(_){};render();window.scrollTo(0,0);return}
   if(d.goto){tab=d.goto;if(d.list)mapView='list';render();return}
   if(d.close){selected=null;render();return}
+  if(d.fav){toggleFav(d.fav);return}
   if(d.open){selected=d.open;render();return}
   if(d.rate){
     const it=planCache.items[+d.item];

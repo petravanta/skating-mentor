@@ -1078,7 +1078,7 @@
     "style": "off-skate",
     "difficulty": 1,
     "requires": [],
-    "supports": ["mohawk", "rail-mohawk", "threeturn", "powerslide"],
+    "supports": ["mohawk", "rail-mohawk", "threeturn", "powerslide", "crazylegs", "grapevine", "spin2", "crisscross", "backcross"],
     "description": "Gentle hip rotation, about 4 minutes. Seated 90/90 switches, 2 × 8, then 5 slow standing hip circles each way per leg.",
     "cues": [
       "Sit tall and let both knees fall side to side together",
@@ -1092,7 +1092,7 @@
     "style": "off-skate",
     "difficulty": 1,
     "requires": [],
-    "supports": ["mohawk", "heel-instep", "spreadeagle", "edges"],
+    "supports": ["mohawk", "heel-instep", "spreadeagle", "edges", "crossfwd", "bcross", "crazylegs", "fish"],
     "description": "Strength for the muscles that turn your hips out. Lying on your side, 2 × 12 clamshells, then 2 × 10 side leg lifts, each side.",
     "cues": [
       "Heels together, lift the top knee",
@@ -1106,7 +1106,7 @@
     "style": "off-skate",
     "difficulty": 2,
     "requires": ["clamshell", "stretch"],
-    "supports": ["mohawk", "rail-mohawk", "spreadeagle", "threeturn"],
+    "supports": ["mohawk", "rail-mohawk", "spreadeagle", "threeturn", "heel-instep", "crazylegs", "fish", "backfish", "eagle"],
     "description": "Hold a wall, heels together, and turn both feet out from the hips as far as is comfortable. Hold 20 seconds, then 8 small knee bends in that position. 3 rounds.",
     "cues": [
       "Turn from the hips, not the knees or feet",
@@ -1120,7 +1120,7 @@
     "style": "off-skate",
     "difficulty": 2,
     "requires": ["hip-circles", "turnout"],
-    "supports": ["mohawk", "rail-mohawk", "threeturn"],
+    "supports": ["mohawk", "rail-mohawk", "threeturn", "twofootturn", "grapevine", "bcross"],
     "description": "Walk the mohawk step on flat ground: step forward, bring the free heel to the standing heel, turn the hips open and step back onto it facing backward. 2 × 6 each direction.",
     "cues": [
       "Heel to heel, toes apart",
@@ -1134,7 +1134,7 @@
     "style": "off-skate",
     "difficulty": 3,
     "requires": ["lateral", "hip-circles"],
-    "supports": ["mohawk", "spreadeagle", "powerslide", "bcross"],
+    "supports": ["mohawk", "spreadeagle", "powerslide", "bcross", "shootduck", "crisscross", "eagle"],
     "description": "A deep side lunge with the straight leg’s toes pointing up, for hip strength at the end of your range. 2 × 5 each side, holding a doorframe at first.",
     "cues": [
       "Sit down into one heel",
