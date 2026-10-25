@@ -164,6 +164,34 @@
     ]
   },
   {
+    "id": "heel-instep",
+    "name": "Heel-to-instep glide",
+    "style": "foundations",
+    "difficulty": 2,
+    "requires": ["glide1", "tstop"],
+    "description": "Glide on one foot and bring the free heel in to the instep of the gliding foot, toes turned out, so the feet make a T. This is the open-hip position a mohawk needs, without the turn. A few short glides each side.",
+    "cues": [
+      "Free heel to the gliding instep, toes out",
+      "Open the free hip, don’t twist the shoulders",
+      "Hold for a count of three, then put it down"
+    ]
+  },
+  {
+    "id": "rail-mohawk",
+    "name": "Mohawk at the rail",
+    "style": "foundations",
+    "difficulty": 2,
+    "requires": ["heel-instep", "bswizzle"],
+    "needs": [["wall"]],
+    "smoothGround": true,
+    "description": "Holding a rail or wall, roll forward very slowly, open the hips and step onto the other foot facing backward. 5 each direction, then try one with just a fingertip on the rail.",
+    "cues": [
+      "Heels point at each other as you step",
+      "Turn the hips open first, the foot follows",
+      "Tiny speed, it’s about the position"
+    ]
+  },
+  {
     "id": "parallel",
     "name": "Parallel turn",
     "style": "foundations",
@@ -233,7 +261,7 @@
     "name": "Mohawk turn",
     "style": "foundations",
     "difficulty": 3,
-    "requires": ["twofootturn", "edges"],
+    "requires": ["twofootturn", "edges", "rail-mohawk"],
     "description": "Step from forward to backward onto the other foot, heels pointing at each other.",
     "cues": [
       "Open the free heel toward the gliding heel",
@@ -938,7 +966,7 @@
     "style": "off-skate",
     "difficulty": 1,
     "requires": [],
-    "supports": ["spreadeagle", "shootduck", "powerslide"],
+    "supports": ["spreadeagle", "shootduck", "powerslide", "mohawk"],
     "description": "Five stretches after skating, about 8 minutes. Hold each for 30–45 seconds per side, easing in without bouncing; mild tension is right, sharp pain is not.",
     "illustrations": ["stretch-1.svg", "stretch-2.svg", "stretch-3.svg", "stretch-4.svg", "stretch-5.svg"],
     "cues": [
@@ -1042,6 +1070,76 @@
       "Hold a doorframe for support",
       "Counterbalance with arms forward",
       "Lower the support over weeks"
+    ]
+  },
+  {
+    "id": "hip-circles",
+    "name": "Hip circles & 90/90 switches",
+    "style": "off-skate",
+    "difficulty": 1,
+    "requires": [],
+    "supports": ["mohawk", "rail-mohawk", "threeturn", "powerslide"],
+    "description": "Gentle hip rotation, about 4 minutes. Seated 90/90 switches, 2 × 8, then 5 slow standing hip circles each way per leg.",
+    "cues": [
+      "Sit tall and let both knees fall side to side together",
+      "Only go as far as is comfortable",
+      "Slow and controlled beats big"
+    ]
+  },
+  {
+    "id": "clamshell",
+    "name": "Clamshells & side leg lifts",
+    "style": "off-skate",
+    "difficulty": 1,
+    "requires": [],
+    "supports": ["mohawk", "heel-instep", "spreadeagle", "edges"],
+    "description": "Strength for the muscles that turn your hips out. Lying on your side, 2 × 12 clamshells, then 2 × 10 side leg lifts, each side.",
+    "cues": [
+      "Heels together, lift the top knee",
+      "Keep the pelvis still, don’t roll back",
+      "Add a light band when 15 feels easy"
+    ]
+  },
+  {
+    "id": "turnout",
+    "name": "Standing turnout hold",
+    "style": "off-skate",
+    "difficulty": 2,
+    "requires": ["clamshell", "stretch"],
+    "supports": ["mohawk", "rail-mohawk", "spreadeagle", "threeturn"],
+    "description": "Hold a wall, heels together, and turn both feet out from the hips as far as is comfortable. Hold 20 seconds, then 8 small knee bends in that position. 3 rounds.",
+    "cues": [
+      "Turn from the hips, not the knees or feet",
+      "Squeeze the backs of the hips",
+      "Knees stay over the toes"
+    ]
+  },
+  {
+    "id": "shoe-mohawk",
+    "name": "Mohawk steps in shoes",
+    "style": "off-skate",
+    "difficulty": 2,
+    "requires": ["hip-circles", "turnout"],
+    "supports": ["mohawk", "rail-mohawk", "threeturn"],
+    "description": "Walk the mohawk step on flat ground: step forward, bring the free heel to the standing heel, turn the hips open and step back onto it facing backward. 2 × 6 each direction.",
+    "cues": [
+      "Heel to heel, toes apart",
+      "Open the hips before the step",
+      "Eyes and shoulders lead the turn"
+    ]
+  },
+  {
+    "id": "cossack",
+    "name": "Cossack squats",
+    "style": "off-skate",
+    "difficulty": 3,
+    "requires": ["lateral", "hip-circles"],
+    "supports": ["mohawk", "spreadeagle", "powerslide", "bcross"],
+    "description": "A deep side lunge with the straight leg’s toes pointing up, for hip strength at the end of your range. 2 × 5 each side, holding a doorframe at first.",
+    "cues": [
+      "Sit down into one heel",
+      "Straight leg toes up",
+      "Only as deep as you can come back up from"
     ]
   }
 ]
