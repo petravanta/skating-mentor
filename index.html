@@ -209,6 +209,20 @@ textarea{resize:vertical}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 18px);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:14px;font-weight:600;z-index:60;max-width:calc(100% - 32px)}
 .empty{padding:28px 16px;text-align:center;color:var(--muted)}
 @media (prefers-reduced-motion:no-preference){.drawer{animation:slide .18s ease-out}@keyframes slide{from{transform:translateX(24px);opacity:.4}}}
+.themepick{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+.themepick summary{cursor:pointer;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;list-style:none}
+.themepick summary::-webkit-details-marker{display:none}
+.themepick summary .lab{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.themepick summary .chg{font-size:13px;color:var(--accent);font-weight:600}
+.themepick[open] summary .chg{color:var(--muted)}
+.themepick .row{margin-top:10px}
+.themepick p{margin-top:8px}
+.tag{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-size:10.5px;letter-spacing:.06em;vertical-align:1px}
+.theme-row{display:flex;flex-direction:column;gap:6px;padding:10px 0;border-bottom:1px solid var(--line)}
+.theme-row:last-child{border-bottom:0}
+.theme-row .nm,.link{background:none;border:0;padding:0;font:inherit;color:var(--ink);font-weight:600;text-align:left}
+.link{text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:2px}
+.theme-row .nm:hover,.link:hover{color:var(--accent)}
 .load-error{margin:16px;padding:12px 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink)}
 </style>
 
@@ -248,6 +262,8 @@ async function loadCatalog(names){
 const CATALOG=await loadCatalog(['skills']).catch(e=>{
   document.body.insertAdjacentHTML('afterbegin','<p class="load-error" role="alert">Couldn’t load the skill list. Check your connection and reload.</p>');
   throw e});
+// Focus themes are optional: without them the app plans sessions as before
+const THEME_DATA=await fetch('data/themes.json').then(r=>r.ok?r.json():[]).catch(()=>[]);
 
 /* ---------------- Skill graph ---------------- */
 const STYLES={
@@ -289,6 +305,18 @@ function illus(s,cls=''){
 }
 const CHILDREN={}; SKILLS.forEach(s=>s.req.forEach(r=>(CHILDREN[r]=CHILDREN[r]||[]).push(s.id)));
 const SUPPORTED_BY={}; SKILLS.forEach(s=>(s.sup||[]).forEach(t=>(SUPPORTED_BY[t]=SUPPORTED_BY[t]||[]).push(s.id)));
+// Focus themes (data/themes.json): groups of skills and drills, like manuals or spins & turns, that sessions can lean toward
+const THEMES=THEME_DATA.filter(t=>t&&t.id&&Array.isArray(t.skills)).map(t=>({id:t.id,n:t.name,desc:t.description,ids:t.skills.filter(id=>BYID[id])}));
+const THEME_BY=Object.fromEntries(THEMES.map(t=>[t.id,t]));
+const THEMES_OF={}; THEMES.forEach(t=>t.ids.forEach(id=>(THEMES_OF[id]=THEMES_OF[id]||[]).push(t.id)));
+// For each theme, the skills that lead up to its on-skate skills, and the nearest theme skill each one opens the way to
+const THEME_PATH={};
+THEMES.forEach(t=>{
+  const m=new Map(), goals=t.ids.filter(id=>BYID[id].st!=='O').sort((a,b)=>BYID[a].d-BYID[b].d);
+  goals.forEach(g=>{const up=id=>BYID[id].req.forEach(r=>{if(!t.ids.includes(r)&&!m.has(r)) m.set(r,g); up(r)}); up(g)});
+  THEME_PATH[t.id]=m;
+});
+const MAX_THEMES=3;
 
 const LEVELS=[
   {n:'Not started',min:0},{n:'Learning',min:1},{n:'Developing',min:50},{n:'Confident',min:70},{n:'Solid',min:90}
@@ -314,6 +342,7 @@ function defaultProfile(){return{
          {id:'sp5',name:'Home',surface:'home',features:[]}],
   ctx:{skate:'sk1',spot:'sp1',minutes:45,focus:'balanced'},
   favs:[],   // starred skill ids: your priorities, given extra room in each session
+  themes:[], // focus theme ids (data/themes.json): sessions lean toward these
   examples:true
 };}
 let state={profile:defaultProfile(),logs:[],photos:{},deleted:[]};
@@ -615,6 +644,40 @@ function toggleFav(id){
 }
 const star=id=>{const on=isFav(id);return `<button class="star" data-fav="${id}" aria-pressed="${on}" aria-label="${on?'Remove '+esc(BYID[id].n)+' from priorities':'Make '+esc(BYID[id].n)+' a priority'}" title="${on?'Priority. Tap to remove':'Make it a priority'}">${on?'★':'☆'}</button>`};
 
+// Your focus themes, ignoring any that are no longer in themes.json
+const themesOn=()=>(Array.isArray(state.profile.themes)?state.profile.themes:(state.profile.themes=[])).filter(id=>THEME_BY[id]);
+const themeNames=ids=>ids.map(id=>THEME_BY[id].n).join(' and ');
+// How a skill ties into your focus themes: a theme it belongs to, or a theme skill it leads up to
+function themeLink(id){
+  const on=themesOn(); if(!on.length) return null;
+  const mem=on.filter(t=>THEME_BY[t].ids.includes(id));
+  if(mem.length) return {themes:mem};
+  for(const t of on){const g=THEME_PATH[t].get(id); if(g&&conf(g)<70) return {themes:[t],toward:g}}
+  return null;
+}
+const inFocus=s=>!!themeLink(s.id);
+function toggleTheme(id){
+  const on=themesOn(), i=on.indexOf(id);
+  if(i<0&&on.length>=MAX_THEMES){toast(`Up to ${MAX_THEMES} themes at a time, so each gets real time. Turn one off first.`);return}
+  i>=0?on.splice(i,1):on.push(id); state.profile.themes=on;
+  touchProfile(); render();
+}
+// Progress through a theme, counted on its on-skate skills
+function themeStats(t){
+  const sk=t.ids.filter(id=>BYID[id].st!=='O'), cs=sk.map(conf);
+  const next=sk.filter(id=>conf(id)<70&&unlocked(BYID[id])).sort((a,b)=>conf(b)-conf(a)||BYID[a].d-BYID[b].d);
+  const path=next.length?[]:[...THEME_PATH[t.id].keys()].filter(id=>conf(id)<UNLOCK&&unlocked(BYID[id])).sort((a,b)=>BYID[a].d-BYID[b].d);
+  return {n:sk.length,avg:Math.round(cs.reduce((a,c)=>a+c,0)/(sk.length||1)),conf:cs.filter(c=>c>=70).length,prog:cs.filter(c=>c>0&&c<70).length,next:next.concat(path).slice(0,3)};
+}
+function themeBar(t,link){
+  const st=themeStats(t), lv=levelOf(st.avg);
+  return `<div class="theme-row">
+    <div class="row" style="justify-content:space-between"><b>${link?`<button class="nm" data-themeview="${t.id}">${esc(t.n)}</button>`:esc(t.n)}</b><span class="small muted mono">${st.conf} of ${st.n} confident${st.prog?` · ${st.prog} in progress`:''}</span></div>
+    <div class="meter"><i style="width:${st.avg}%;background:var(--lv-${['new','learn','dev','conf','solid'][lv]})"></i></div>
+    ${st.next.length?`<p class="small muted">Next up: ${st.next.map(id=>`<button class="link" data-open="${id}">${esc(BYID[id].n)}</button>`).join(', ')}</p>`:st.conf===st.n?`<p class="small muted">All confident. Nice work.</p>`:''}
+  </div>`;
+}
+
 /* ---------------- Recommender ---------------- */
 function hash(str){let h=2166136261;for(const ch of str){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)}return (h>>>0)/4294967296}
 function descendants(id,acc=new Set()){(CHILDREN[id]||[]).forEach(c=>{if(!acc.has(c)){acc.add(c);descendants(c,acc)}});return acc}
@@ -635,14 +698,16 @@ function buildPlan(seed,keep=[]){
   const cands=[], elsewhere=[];
   for(const s of SKILLS){
     // your priorities come along even when they're locked or in a style you've turned off: you picked them
-    const fav=isFav(s.id);
-    if(!fav&&(!styleOn(s)||!unlocked(s))||kept.has(s.id)) continue;
+    // skills in your focus themes, and the ones leading up to them, come along whatever styles you've turned on
+    const fav=isFav(s.id); let th=themeLink(s.id);
+    if(!fav&&(!(styleOn(s)||th)||!unlocked(s))||kept.has(s.id)) continue;
     const c=conf(s.id), info=CONF[s.id];
     let kind=c===0?'new':c<70?'work':(info&&info.days>21)||c<85?'review':'solid';
     if(fav&&kind==='solid') kind='review';
-    if(s.st==='O'){cands.push({s,kind,score:0,off:true,fav});continue}
+    if(th&&th.toward&&kind!=='new'&&kind!=='work') th=null;   // already have it: nothing to open up
+    if(s.st==='O'){cands.push({s,kind,score:0,off:true,fav,th});continue}
     const b=blocker(s,skate,spot);
-    if(b){ if(fav||kind==='new'||kind==='work') elsewhere.push({s,b,kind,fav}); continue }
+    if(b){ if(fav||kind==='new'||kind==='work') elsewhere.push({s,b,kind,fav,th:th&&!th.toward?th:null}); continue }
     let score=0, why='';
     const lev=[...descendants(s.id)].filter(x=>styleOn(BYID[x])).length;
     if(kind==='work'){score=55+(70-c)*0.25+(info.days<10?8:0); why=`At ${c}%. ${info.days<1?'You worked on it today':info.days<10?'Keep the momentum from '+ago(info.last):'Last practised '+ago(info.last)}.`}
@@ -655,12 +720,17 @@ function buildPlan(seed,keep=[]){
     if(s.st!=='F') score+=4;
     const n=s.need?s.need.length:0; if(n) score+=6; // this spot has what it needs, make use of it
     score+=hash(seed+s.id)*10;
+    if(th&&!fav){
+      // your focus themes: their own skills well up the list, the ones that open the way to them a little less
+      if(!th.toward){ score+=kind==='solid'?6:28; why=`${themeNames(th.themes)} focus. `+why }
+      else if(kind==='new'||kind==='work'){ score+=16; why=`On the way to ${BYID[th.toward].n} (${THEME_BY[th.themes[0]].n}). `+why }
+    }
     if(fav){
       // well ahead of everything else, and the longer since you last did it, the sooner it comes back
       score+=45+Math.min(info?info.days:14,14)*2;
       why='One of your priorities. '+(unlocked(s)?why:'It builds on '+s.req.filter(r=>conf(r)<UNLOCK).map(r=>BYID[r].n).join(' and ')+', so take it slowly.');
     }
-    cands.push({s,kind,score,why,fav});
+    cands.push({s,kind,score,why,fav,th});
   }
   const items=[], MAX=12;
   // fill the time with short blocks; if there aren't enough skills, give the ones there are a bit longer
@@ -673,7 +743,7 @@ function buildPlan(seed,keep=[]){
     for(const x of offs){
       if(items.length+keep.length>=MAX||left<3) break;
       const m=Math.min(itemMins(x.s,'off'),left); left-=m;
-      items.push({id:x.s.id,role:'off',mins:m,why:(x.fav?'One of your priorities. ':'')+offWhy(x.s)});
+      items.push({id:x.s.id,role:'off',mins:m,why:(x.fav?'One of your priorities. ':'')+offWhy(x.s),theme:themeTag(x.s.id)});
     }
     stretch(mins);
   }else{
@@ -684,37 +754,52 @@ function buildPlan(seed,keep=[]){
     const maxNew=focus==='new'?Math.max(1,Math.round(mins/25)):(focus==='consolidate'?0:Math.max(1,Math.round(mins/50)));
     const offs=mins>=25?cands.filter(x=>x.off):[];
     // a second off-skate block on longer days when you have off-skate priorities to fit in
-    const offN=offs.length?(mins>=45&&offs.filter(x=>x.fav).length>=2?2:1):0;
+    const offN=offs.length?(mins>=45&&(offs.filter(x=>x.fav).length>=2||offs.some(x=>x.th&&!x.th.toward))?2:1):0;
     const warmTime=warm?itemMins(warm.s,'warm'):0, offTime=offN*6;
     let left=mins-warmTime-offTime;
     const slots=MAX-keep.length-(warm?1:0)-offN;
     const picked=[]; let nNew=0;
     const take=x=>{const role=x.kind==='new'?'new':x.kind==='work'?'work':'review';
-      const m=Math.min(itemMins(x.s,role),left); left-=m; picked.push({x,role:x.fav?'fav':role,m}); if(x.kind==='new'&&!x.fav) nNew++};
+      const m=Math.min(itemMins(x.s,role),left); left-=m; picked.push({x,role:x.fav?'fav':role,m}); if(x.kind==='new'&&!x.fav) nNew++; return m};
     const isPicked=x=>picked.some(p=>p.x===x);
     // priorities first: about one for every 15 minutes, up to half the session. With more than fit, the ones you did least recently win.
     const favCap=Math.min(Math.max(1,Math.round(mins/15)),Math.ceil(slots/2));
     for(const x of sk){ if(picked.filter(p=>p.x.fav).length>=favCap||picked.length>=slots||left<3) break; if(x.fav&&(!warm||x.s.id!==warm.s.id)) take(x) }
+    // then your focus themes, taking turns so each theme gets time, until they fill about 60% of the session.
+    // A theme's own skills go first; when none are open yet, the skills that lead up to them.
+    const tOn=themesOn();
+    let tMins=picked.reduce((a,p)=>a+(p.x.th?p.m:0),0);
+    if(tOn.length){
+      let stuck=0, i=0;
+      const tNewCap=maxNew+1;
+      while(stuck<tOn.length&&tMins<mins*0.6&&picked.length<slots&&left>=3){
+        const t=tOn[i++%tOn.length];
+        const x=sk.find(y=>!isPicked(y)&&y.th&&y.th.themes.includes(t)&&y.kind!=='solid'&&(!warm||y.s.id!==warm.s.id)&&(y.kind!=='new'||nNew<tNewCap));
+        if(!x){stuck++;continue} stuck=0; tMins+=take(x);
+      }
+    }
     for(const x of sk){
       if(isPicked(x)) continue;
       if(picked.length>=slots||left<3) break;
       if(warm&&x.s.id===warm.s.id) continue;
       if(x.kind==='new'&&nNew>=maxNew) continue;
+      // leave the rest of the session for other things, so the basics don't slip while you focus
+      if(x.th&&tOn.length&&tMins>=mins*0.6&&sk.some(y=>!y.th&&!isPicked(y)&&y.kind!=='solid'&&(!warm||y.s.id!==warm.s.id)&&(y.kind!=='new'||nNew<maxNew))) continue;
       if(x.kind==='solid'&&sk.some(y=>y.kind!=='solid'&&!isPicked(y)&&(!warm||y.s.id!==warm.s.id)&&(y.kind!=='new'||nNew<maxNew))) continue;
-      take(x);
+      const m=take(x); if(x.th) tMins+=m;
     }
     // nothing in progress yet (a new skater): fill the remaining time with more new skills
     for(const x of sk){ if(picked.length>=slots||left<3) break; if(!isPicked(x)&&x.kind==='new'&&(!warm||x.s.id!==warm.s.id)) take(x) }
     if(warm) items.push({id:warm.s.id,role:'warm',mins:warmTime,why:(conf(warm.s.id)>0?'Easy start on something you already have. ':'Easy start to get your legs under you. ')+(warm.s.cues[0]||'')+'.'});
-    picked.forEach(({x,role,m})=>items.push({id:x.s.id,role,mins:m,why:x.why}));
+    picked.forEach(({x,role,m})=>items.push({id:x.s.id,role,mins:m,why:x.why,theme:themeTag(x.s.id)}));
     stretch(mins-warmTime-offTime);
     if(offN){
       const focusIds=picked.map(p=>p.x.s.id);
       const ranked=offs.map(x=>({...x,score:offScore(x.s,focusIds,focus,seed)})).sort((a,b)=>b.score-a.score);
-      ranked.slice(0,offN).forEach(x=>items.push({id:x.s.id,role:'off',mins:Math.min(6,itemMins(x.s,'off')),why:'After skating. '+(x.fav?'One of your priorities. ':'')+offWhy(x.s,focusIds)}));
+      ranked.slice(0,offN).forEach(x=>items.push({id:x.s.id,role:'off',mins:Math.min(6,itemMins(x.s,'off')),why:'After skating. '+(x.fav?'One of your priorities. ':'')+offWhy(x.s,focusIds),theme:themeTag(x.s.id)}));
     }
   }
-  elsewhere.sort((a,b)=>(b.fav?1:0)-(a.fav?1:0)||(a.kind==='work'?0:1)-(b.kind==='work'?0:1)||a.s.d-b.s.d);
+  elsewhere.sort((a,b)=>(b.fav?1:0)-(a.fav?1:0)||(b.th?1:0)-(a.th?1:0)||(a.kind==='work'?0:1)-(b.kind==='work'?0:1)||a.s.d-b.s.d);
   return {items,elsewhere:elsewhere.slice(0,5),offOnly};
 }
 function offScore(s,focusIds,focus,seed){
@@ -725,17 +810,25 @@ function offScore(s,focusIds,focus,seed){
   sc+=sup.filter(t=>{const k=conf(t);return k>0&&k<70}).length*8;
   sc+=sup.filter(t=>conf(t)===0&&BYID[t]&&unlocked(BYID[t])&&styleOn(BYID[t])).length*3;
   if(focus==='easy') sc-=s.d*4;
+  // drills in your focus themes, and drills that help with your themes' skills
+  const on=themesOn();
+  if(on.length){
+    if(on.some(t=>THEME_BY[t].ids.includes(s.id))) sc+=28;
+    sc+=Math.min(3,sup.filter(t=>on.some(th=>THEME_BY[th].ids.includes(t))).length)*5;
+  }
   if(isFav(s.id)){const info=CONF[s.id]; sc+=40+Math.min(info?info.days:14,14)*2}
   return sc+hash(seed+s.id)*8;
 }
 function offWhy(s,focusIds){
-  const sup=(s.sup||[]).filter(t=>styleOn(BYID[t]));
+  const sup=(s.sup||[]).filter(t=>styleOn(BYID[t])||inFocus(BYID[t]));
   const pri=focusIds?sup.filter(t=>focusIds.includes(t)):[];
   const list=(pri.length?pri:sup.filter(t=>{const k=conf(t);return k>0&&k<70})).concat(sup).filter((v,i,a)=>a.indexOf(v)===i).slice(0,2);
   return list.length?`Helps with ${list.map(t=>BYID[t].n).join(' and ')}.`:s.desc;
 }
+// The focus theme an item counts toward, shown on its card
+function themeTag(id){const l=themeLink(id); return l&&!l.toward?l.themes[0]:undefined}
 function ago(ts){const d=Math.floor((Date.now()-new Date(ts).getTime())/DAY);return d<=0?'today':d===1?'yesterday':d<14?d+' days ago':d<60?Math.round(d/7)+' weeks ago':Math.round(d/30)+' months ago'}
-function ctxKey(){const c=state.profile.ctx;return [c.skate,c.spot,c.minutes,c.focus,state.profile.styles.join('')].join('|')}
+function ctxKey(){const c=state.profile.ctx, th=themesOn();return [c.skate,c.spot,c.minutes,c.focus,state.profile.styles.join('')].concat(th.length?[th.join(',')]:[]).join('|')}
 function getPlan(){
   const today=new Date().toISOString().slice(0,10), key=ctxKey();
   if(planCache&&planCache.key===key&&planCache.day===today) return planCache;
@@ -763,7 +856,7 @@ function savePlan(){lsSet(LS_PLAN,planCache);render()}
 // What you can add to today's session yourself: anything doable with this setup, unlocked first
 function pickable(){
   const skate=curSkate(), spot=curSpot(), offOnly=!skate||spot.surface==='home', inPlan=new Set(getPlan().items.map(it=>it.id));
-  return SKILLS.filter(s=>styleOn(s)&&!inPlan.has(s.id)&&!blocker(s,skate,spot)&&(!offOnly||s.st==='O'));
+  return SKILLS.filter(s=>(styleOn(s)||inFocus(s))&&!inPlan.has(s.id)&&!blocker(s,skate,spot)&&(!offOnly||s.st==='O'));
 }
 function addToPlan(id){
   const s=BYID[id], pl=getPlan(); if(!s||pl.items.some(it=>it.id===id)) return;
@@ -776,7 +869,7 @@ function addToPlan(id){
 
 /* ---------------- Rendering ---------------- */
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let tab='today', mapView='map', mapStyle='mine', zoom=1, selected=null, pendingDelete=null;
+let tab='today', mapView='map', mapStyle='mine', zoom=1, selected=null, pendingDelete=null, themeOpen=false;
 try{const t=sessionStorage.getItem('sm.tab');if(t)tab=t}catch(e){}
 
 function render(){
@@ -789,7 +882,7 @@ function render(){
 }
 
 function viewToday(){
-  const p=state.profile, c=p.ctx, plan=getPlan(), skate=curSkate(), spot=curSpot();
+  const p=state.profile, c=p.ctx, plan=getPlan(), skate=curSkate(), spot=curSpot(), tOn=themesOn();
   const opt=(arr,val)=>arr.map(([v,l])=>`<option value="${esc(v)}"${String(v)===String(val)?' selected':''}>${esc(l)}</option>`).join('');
   const notes=[];
   if(skate&&skate.wheels==='indoor'&&(spot.surface==='rough'||spot.surface==='park')) notes.push('Hard indoor wheels will feel skittish here. Keep to the smoothest patches.');
@@ -802,7 +895,7 @@ function viewToday(){
     const roleName={warm:'Warm-up',work:'Keep building',new:'New skill',review:'Review',off:'Off-skate',pick:'Your pick',fav:'Priority'}[it.role];
     return `<article class="item${done?' done':''}">
       <div class="slot"><b>${it.mins}</b><span>min</span></div>
-      <div class="role ${it.role}">${roleName}${s.st!=='O'?' · '+esc(STYLES[s.st].n):''}</div>
+      <div class="role ${it.role}">${roleName}${s.st!=='O'?' · '+esc(STYLES[s.st].n):''}${it.theme&&THEME_BY[it.theme]?`<span class="tag">${esc(THEME_BY[it.theme].n)}</span>`:''}</div>
       <div class="lvl">${pill(s.id)}${star(s.id)}<button class="rm" data-rmitem="${i}" aria-label="Remove ${esc(s.n)} from today" title="Remove from today">×</button></div>
       <button class="name" data-open="${s.id}">${esc(s.n)}</button>
       <p class="why" style="grid-column:2/span 2">${esc(it.why)}</p>
@@ -815,8 +908,8 @@ function viewToday(){
   const favRows=favs().filter(id=>BYID[id]).map(id=>{const s=BYID[id], b=blocker(s,skate,spot)||(plan.offOnly&&s.st!=='O'?'needs skates on':null);
     return `<div class="srow" style="grid-template-columns:auto minmax(0,1fr) auto">${star(id)}<span><button class="nm" data-open="${id}">${esc(s.n)}</button> <span class="muted small">${inPlan.has(id)?'in today’s session':b?esc(b):!unlocked(s)&&conf(id)===0?'not unlocked yet':''}</span></span>
       ${!inPlan.has(id)&&!b?`<button class="btn sm" data-addplan="${id}">Add</button>`:pill(id)}</div>`}).join('');
-  const nearly=SKILLS.filter(s=>styleOn(s)&&s.st!=='O'&&!unlocked(s)&&conf(s.id)===0&&s.req.filter(r=>conf(r)<UNLOCK).length===1)
-    .map(s=>({s,r:s.req.find(r=>conf(r)<UNLOCK)})).filter(x=>conf(x.r)>0).slice(0,5);
+  const nearly=SKILLS.filter(s=>(styleOn(s)||inFocus(s))&&s.st!=='O'&&!unlocked(s)&&conf(s.id)===0&&s.req.filter(r=>conf(r)<UNLOCK).length===1)
+    .map(s=>({s,r:s.req.find(r=>conf(r)<UNLOCK),th:inFocus(s)})).filter(x=>conf(x.r)>0).sort((a,b)=>b.th-a.th).slice(0,5);
   return `<div class="stack">
     ${p.examples&&!anyLogs?`<div class="banner"><p><b>Start by setting yourself up.</b> The skates and spots below are examples. Edit them to match yours, then mark the skills you already have so recommendations start at your level.</p>
       <div class="row"><button class="btn primary" data-goto="map" data-list="1">Mark skills I have</button><button class="btn" data-goto="gear">Edit skates &amp; spots</button></div></div>`:''}
@@ -829,6 +922,11 @@ function viewToday(){
       </div>
       ${[skate,spot].some(k=>k&&k.photo&&state.photos[k.photo])?`<div class="row ctx-photos">${[skate,spot].filter(k=>k&&k.photo&&state.photos[k.photo]).map(k=>`<img src="${state.photos[k.photo]}" data-ph="${k.photo}" alt="${esc(k.name)}"${edgeStyle(k.photo)}>`).join('')}</div>`:''}
       <p class="ctx-note">${esc(spotSummary(skate,spot))}${notes.length?' '+esc(notes.join(' ')):''}</p>
+      ${THEMES.length?`<details class="themepick" id="themePick"${themeOpen?' open':''}>
+        <summary><span class="lab">Focus themes</span><span>${tOn.length?esc(tOn.map(id=>THEME_BY[id].n).join(', ')):'<span class="muted">None, all-round training</span>'}</span><span class="chg">${themeOpen?'Done':tOn.length?'Change':'Choose'}</span></summary>
+        <div class="row">${THEMES.map(th=>`<button class="chip" aria-pressed="${tOn.includes(th.id)}" data-focustheme="${th.id}" title="${esc(th.desc)}">${esc(th.n)}</button>`).join('')}</div>
+        <p class="muted small">Pick up to ${MAX_THEMES} things to get good at. About 60% of each session goes to them and the skills that lead up to them, with off-skate drills that help. The rest keeps everything else ticking over.</p>
+      </details>`:''}
     </section>
     <div class="row" style="justify-content:space-between">
       <h2>${plan.offOnly?'Off-skate session':'Today’s session'} <span class="muted mono" style="font-size:14px">${total} min${nDone?` · ${nDone} of ${plan.items.length} done`:''}</span></h2>
@@ -840,9 +938,10 @@ function viewToday(){
     <section class="panel"><h3>Your priorities</h3>${favRows?`<div class="slist">${favRows}</div>
       <p class="muted small" style="margin-top:6px">Priorities get first pick of each session’s time, the ones you did least recently first. Changes show up in your next session, or tap Suggest different skills.</p>`:
       `<p class="muted small" style="margin-top:6px">Tap ☆ on any skill or exercise you want in high rotation. Starred ones get first pick of each session’s time.</p>`}</section>
+    ${tOn.length?`<section class="panel"><h3>Your focus</h3>${tOn.map(id=>themeBar(THEME_BY[id],true)).join('')}</section>`:''}
     <div class="two">
       ${plan.elsewhere.length?`<section class="panel"><h3>Not possible here</h3><div class="hint-list">${plan.elsewhere.map(x=>`<div><button data-open="${x.s.id}">${x.fav?'★ ':''}${esc(x.s.n)}</button> <span class="muted small">${esc(x.b)}</span></div>`).join('')}</div></section>`:''}
-      ${nearly.length?`<section class="panel"><h3>Almost unlocked</h3><div class="hint-list">${nearly.map(x=>`<div><button data-open="${x.s.id}">${esc(x.s.n)}</button> <span class="muted small">get ${esc(BYID[x.r].n)} to Developing</span></div>`).join('')}</div></section>`:''}
+      ${nearly.length?`<section class="panel"><h3>Almost unlocked</h3><div class="hint-list">${nearly.map(x=>`<div><button data-open="${x.s.id}">${esc(x.s.n)}</button>${x.th&&themeTag(x.s.id)?`<span class="tag">${esc(THEME_BY[themeTag(x.s.id)].n)}</span>`:''} <span class="muted small">get ${esc(BYID[x.r].n)} to Developing</span></div>`).join('')}</div></section>`:''}
     </div>
   </div>`;
 }
@@ -854,17 +953,22 @@ function spotSummary(skate,spot){
 
 /* ----- Skill map ----- */
 function visibleSet(){
-  const base=SKILLS.filter(s=>mapStyle==='all'?true:mapStyle==='mine'?styleOn(s):s.st===mapStyle);
+  const th=mapStyle.startsWith('t:')&&THEME_BY[mapStyle.slice(2)];
+  const base=SKILLS.filter(s=>th?th.ids.includes(s.id):mapStyle==='all'?true:mapStyle==='mine'?styleOn(s):s.st===mapStyle);
   const set=new Set(base.map(s=>s.id)), anc=new Set();
   const up=id=>BYID[id].req.forEach(r=>{if(!set.has(r)&&!anc.has(r)){anc.add(r)}up(r)});
   base.forEach(s=>up(s.id));
   return {ids:[...set,...anc],faded:anc};
 }
 function viewMap(){
+  const mapTheme=mapStyle.startsWith('t:')?THEME_BY[mapStyle.slice(2)]:null;
   const chips=[['mine','My styles'],['all','Everything'],...Object.entries(STYLES).map(([k,v])=>[k,v.n])];
   const head=`<div class="row" style="justify-content:space-between"><h2>Skill map</h2>
     <div class="row"><button class="chip" aria-pressed="${mapView==='map'}" data-mapview="map">Map</button><button class="chip" aria-pressed="${mapView==='list'}" data-mapview="list">List &amp; set levels</button></div></div>
-    <div class="maptools">${chips.map(([k,l])=>`<button class="chip" aria-pressed="${mapStyle===k}" data-mapstyle="${k}">${esc(l)}</button>`).join('')}</div>`;
+    <div class="maptools">${chips.map(([k,l])=>`<button class="chip" aria-pressed="${mapStyle===k}" data-mapstyle="${k}">${esc(l)}</button>`).join('')}</div>
+    ${THEMES.length?`<div class="maptools"><span class="small muted" style="margin-right:2px">Themes</span>${THEMES.map(th=>`<button class="chip" aria-pressed="${mapStyle==='t:'+th.id}" data-mapstyle="t:${th.id}">${themesOn().includes(th.id)?'◆ ':''}${esc(th.n)}</button>`).join('')}</div>`:''}
+    ${mapTheme?`<section class="panel"><p class="small muted">${esc(mapTheme.desc)}${themesOn().includes(mapTheme.id)?' One of your focus themes.':''}</p>${themeBar(mapTheme,false)}
+      ${themesOn().includes(mapTheme.id)?'':`<button class="btn sm" data-focustheme="${mapTheme.id}">Focus on ${esc(mapTheme.n)}</button>`}</section>`:''}`;
   if(mapView==='list') return `<div class="stack">${head}${viewList()}</div>`;
   return `<div class="stack">${head}
     <div class="row" style="justify-content:space-between">
@@ -874,7 +978,7 @@ function viewMap(){
       <div class="row"><button class="btn sm" data-zoom="-1" aria-label="Zoom out">−</button><button class="btn sm" data-zoom="1" aria-label="Zoom in">+</button></div>
     </div>
     <div class="mapbox" id="mapbox"></div>
-    <p class="muted small">Left to right is progression: a skill unlocks once everything feeding into it reaches Developing (${UNLOCK}%). Faded skills belong to other styles but are needed here. Skills your current skates or spot can’t support are dimmed.</p>
+    <p class="muted small">Left to right is progression: a skill unlocks once everything feeding into it reaches Developing (${UNLOCK}%). Faded skills belong to other styles${mapTheme?' or themes':''} but are needed here. Skills your current skates or spot can’t support are dimmed.</p>
   </div>`;
 }
 function drawMap(){
@@ -949,6 +1053,7 @@ function renderDrawer(){
       ${c>0?`<div class="meter"><i style="width:${c}%;background:var(--lv-${['new','learn','dev','conf','solid'][lv]})"></i></div>`:''}
     </div>
     <p>${esc(s.desc)}</p>
+    ${(THEMES_OF[s.id]||[]).length?`<p class="small muted">Themes: ${THEMES_OF[s.id].map(id=>`<button class="link" data-themeview="${id}">${esc(THEME_BY[id].n)}</button>`).join(', ')}</p>`:''}
     ${illus(s)}
     <div><h3>Cues</h3><ul>${s.cues.map(q=>`<li>${esc(q)}</li>`).join('')}</ul></div>
     ${needs.length?`<p class="small"><b>Needs:</b> ${esc(needs.join(', '))}.${b?` <span style="color:var(--danger)">Not possible with today’s setup (${esc(b)}).</span>`:''}</p>`:''}
@@ -989,6 +1094,8 @@ function viewLog(){
       <div class="panel stat"><b>${inprog}</b><span>In progress</span></div>
     </div>
     <section class="panel"><h3>By style</h3><div class="slist">${styleRows}</div></section>
+    ${THEMES.length?`<section class="panel"><h3>${themesOn().length?'Your focus themes':'By theme'}</h3>${(themesOn().length?themesOn().map(id=>THEME_BY[id]):THEMES).map(th=>themeBar(th,true)).join('')}
+      ${themesOn().length?'':'<p class="muted small" style="margin-top:6px">Choose focus themes on Today to have sessions lean toward them.</p>'}</section>`:''}
     <section class="panel stack">
       ${Object.keys(groups).length?Object.entries(groups).map(([d,ls])=>`<div class="day"><h3>${new Date(d+'T12:00').toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric',year:'numeric'})}</h3>
         ${ls.map(l=>{const s=BYID[l.skill]; if(!s) return '';
@@ -1095,6 +1202,8 @@ document.addEventListener('click',async e=>{
   if(d.goto){tab=d.goto;if(d.list)mapView='list';render();return}
   if(d.close){selected=null;render();return}
   if(d.fav){toggleFav(d.fav);return}
+  if(d.focustheme){toggleTheme(d.focustheme);return}
+  if(d.themeview){tab='map';mapStyle='t:'+d.themeview;selected=null;try{sessionStorage.setItem('sm.tab',tab)}catch(_){};render();window.scrollTo(0,0);return}
   if(d.open){selected=d.open;render();return}
   if(d.rate){
     const it=planCache.items[+d.item];
@@ -1134,6 +1243,7 @@ document.addEventListener('click',async e=>{
       catch(_){try{await navigator.clipboard.writeText(data);toast('Backup copied to clipboard')}catch(__){toast('Export isn\u2019t available here')}}}
     return}
 });
+document.addEventListener('toggle',e=>{if(e.target.id==='themePick'){themeOpen=e.target.open;const c=e.target.querySelector('.chg');if(c)c.textContent=themeOpen?'Done':themesOn().length?'Change':'Choose'}},true);
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&selected){selected=null;render()}
   if((e.key==='Enter'||e.key===' ')&&e.target.matches('g[data-open]')){e.preventDefault();selected=e.target.dataset.open;render()}
