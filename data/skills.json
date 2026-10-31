@@ -645,6 +645,16 @@
     ]
   },
   {
+    "id": "curb-manual",
+    "name": "Curb manual",
+    "style": "street",
+    "difficulty": 4,
+    "requires": ["curbhop", "manual-roll"],
+    "needs": [["curb", "ledge"]],
+    "description": "Roll along the top of a curb or low ledge on the back wheels without dropping off.",
+    "cues": ["Pop onto the back wheels just before the edge", "Arms forward for balance", "Look at the end of the curb"]
+  },
+  {
     "id": "rhythm",
     "name": "Skating to the beat",
     "style": "dance",
@@ -834,6 +844,26 @@
     ]
   },
   {
+    "id": "manual-wall",
+    "name": "Back-wheel balance at the wall",
+    "style": "slalom",
+    "difficulty": 2,
+    "requires": ["stance"],
+    "needs": [["wall"]],
+    "description": "Standing still and holding a wall or rail, rock back onto the back wheels of both skates and find the balance point where the fronts stay up.",
+    "cues": ["Hips back, chest over the knees", "Lift the toes, don't lean the shoulders back", "Hold for a slow count of five, then let go with one hand"]
+  },
+  {
+    "id": "manual-roll",
+    "name": "Short rolling manual",
+    "style": "slalom",
+    "difficulty": 3,
+    "requires": ["heeltoe", "manual-wall"],
+    "smoothGround": true,
+    "description": "Roll slowly in a staggered stance and lift both skates onto their back wheels for a short count before setting the fronts down. The first step to a real manual on inline or quad skates.",
+    "cues": ["Front foot half a skate ahead of the back", "Lift both toes together, knees soft", "Two counts, then three, then a whole line"]
+  },
+  {
     "id": "heelwheel",
     "name": "Heel wheeling",
     "style": "slalom",
@@ -843,6 +873,16 @@
     "smoothGround": true,
     "description": "Roll on the back wheels of both skates.",
     "cues": ["Toes up, knees soft", "Arms forward for balance", "Short distances, then longer"]
+  },
+  {
+    "id": "toe-roll",
+    "name": "Toe roll",
+    "style": "slalom",
+    "difficulty": 4,
+    "requires": ["manual-roll"],
+    "smoothGround": true,
+    "description": "The front-wheel manual: roll on the front wheels of both skates (on quads, the front wheels just behind the toe stops) with the heels up.",
+    "cues": ["Weight forward over the balls of the feet", "Heels up, knees bent", "Short holds first: the fronts stop you faster than the backs"]
   },
   {
     "id": "onefoot",
@@ -952,7 +992,7 @@
     "style": "off-skate",
     "difficulty": 1,
     "requires": [],
-    "supports": ["stance", "spin2", "powerslide"],
+    "supports": ["stance", "spin2", "powerslide", "heelwheel", "manual-roll"],
     "description": "Core holds that keep your upper body quiet on skates.",
     "cues": [
       "Straight line from head to heels",
@@ -1024,7 +1064,7 @@
     "style": "off-skate",
     "difficulty": 2,
     "requires": ["balance"],
-    "supports": ["glide1", "frontside", "soul", "heeltoe"],
+    "supports": ["glide1", "frontside", "soul", "heeltoe", "manual-roll", "toe-roll"],
     "description": "Balance board or cushion: two-foot then one-foot holds.",
     "cues": ["Near a wall at first", "Small squats while balanced", "30-second sets"]
   },
@@ -1141,5 +1181,15 @@
       "Straight leg toes up",
       "Only as deep as you can come back up from"
     ]
+  },
+  {
+    "id": "toe-lifts",
+    "name": "Toe lifts & heel balance",
+    "style": "off-skate",
+    "difficulty": 1,
+    "requires": [],
+    "supports": ["heeltoe", "manual-wall", "manual-roll", "heelwheel", "toe-roll", "curb-manual"],
+    "description": "Back against a wall with the heels a foot away, lift the toes as high as they go and lower slowly, then stand on your heels with the toes up and hold. Builds the shins and the balance point a manual needs.",
+    "cues": ["3 × 15 toe lifts, slow on the way down", "Heel stand: 3 × 20 seconds, hands free if you can", "Then the same holds with eyes closed"]
   }
 ]

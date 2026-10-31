@@ -1,0 +1,68 @@
+[
+  {
+    "id": "manuals",
+    "name": "Manuals",
+    "description": "Rolling on the back wheels (or the fronts) with the other end up, from holding the balance at a wall to manualling a curb.",
+    "skills": ["heeltoe", "manual-wall", "manual-roll", "heelwheel", "toe-roll", "curb-manual", "toe-lifts", "balance", "bosu", "plank", "calf"]
+  },
+  {
+    "id": "turns",
+    "name": "Spins & turns",
+    "description": "Changing direction and spinning: two-foot turns, mohawks, three-turns, spins and turning jumps.",
+    "skills": ["aframe", "parallel", "twofootturn", "heel-instep", "rail-mohawk", "mohawk", "threeturn", "spin2", "toespin", "scratch", "j180", "jump360", "waltz", "wallturn", "spinsock", "hip-circles", "turnout", "shoe-mohawk", "shoe180", "clamshell"]
+  },
+  {
+    "id": "balance",
+    "name": "One-foot balance",
+    "description": "Staying steady on one skate for longer and lower.",
+    "skills": ["glide1", "heel-instep", "shootduck", "onefoot", "edges", "balance", "slsquat", "bosu", "pistol", "wallsit"]
+  },
+  {
+    "id": "edges",
+    "name": "Edges & crossovers",
+    "description": "Clean inside and outside edges, crossovers both ways, and the carves and slalom lines built on them.",
+    "skills": ["edges", "crossfwd", "bcross", "carve", "snake", "spreadeagle", "eagle", "doublepush", "clamshell", "lateral", "bridge", "calf", "cossack"]
+  },
+  {
+    "id": "backwards",
+    "name": "Skating backwards",
+    "description": "Comfortable, fast and controlled going backwards.",
+    "skills": ["bswizzle", "bstride", "bcross", "backfish", "backcross", "twofootturn", "bridge", "hip-circles"]
+  },
+  {
+    "id": "stopping",
+    "name": "Stopping & control",
+    "description": "Stopping when you mean to, at any speed, and falling well when you don't.",
+    "skills": ["fall", "plow", "heelstop", "toedrag", "tstop", "powerslide", "hills", "fallpractice", "squat", "stretch"]
+  },
+  {
+    "id": "jumps",
+    "name": "Jumps & hops",
+    "description": "Getting off the ground and landing soft, from small hops to turning jumps and gaps.",
+    "skills": ["hop", "smallobst", "curbhop", "gap", "j180", "jump360", "waltz", "air180", "air360", "stairgap", "squat", "tuck", "skaterhop", "shoe180"]
+  },
+  {
+    "id": "ramps",
+    "name": "Ramps & transitions",
+    "description": "Riding banks, quarters and bowls: pumping, dropping in, stalls and airs.",
+    "skills": ["bank", "pump", "dropin", "wallturn", "stall", "carve", "air180", "copinggrind", "fallpractice", "squat", "calf"]
+  },
+  {
+    "id": "grinds",
+    "name": "Grinds",
+    "description": "Sliding curbs, ledges, coping and rails.",
+    "skills": ["frontside", "soul", "royale", "rail", "copinggrind", "bosu", "stretch", "turnout"]
+  },
+  {
+    "id": "footwork",
+    "name": "Dance footwork",
+    "description": "Rhythm, jam and slalom footwork that flows to music.",
+    "skills": ["rhythm", "heeltoe", "crazylegs", "grapevine", "fish", "crisscross", "hip-circles", "turnout", "calf"]
+  },
+  {
+    "id": "stamina",
+    "name": "Speed & stamina",
+    "description": "A longer, stronger stride and the fitness to keep it going.",
+    "skills": ["longstride", "endurance", "intervals", "doublepush", "crossfwd", "skaterhop", "lateral", "squat", "wallsit"]
+  }
+]

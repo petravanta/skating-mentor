@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Focus themes",
+  "description": "Themes you can choose to focus your training on, such as manuals or spins and turns. Each lists the skills and off-skate drills that belong to it. When someone picks a theme, sessions lean toward its skills and toward the skills that lead up to them.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["id", "name", "description", "skills"],
+    "properties": {
+      "id": {"type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$", "description": "Stable short id. People's chosen themes are saved by id, so never change or reuse one that has shipped."},
+      "name": {"type": "string", "minLength": 2, "description": "Name shown in the app."},
+      "description": {"type": "string", "minLength": 10, "description": "One sentence on what the theme works on."},
+      "skills": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}, "description": "Skill ids from skills.json that belong to the theme, on-skate skills and the off-skate drills that support them. The skills that lead up to these are worked on too, so you don't need to list every prerequisite."}
+    }
+  }
+}
