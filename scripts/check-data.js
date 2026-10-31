@@ -1,8 +1,9 @@
-// Checks what the JSON Schema can't: ids are unique, every reference points at a skill or illustration that exists,
+// Checks what the JSON Schemas can't: ids are unique, every reference points at a skill or illustration that exists,
 // and the requires links never loop back on themselves.
 // Run: node scripts/check-data.js
 const fs = require('fs'), path = require('path');
-const skills = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'skills.json'), 'utf8'));
+const read = f => JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', f), 'utf8'));
+const skills = read('skills.json'), themes = read('themes.json');
 const errors = [];
 
 const byId = new Map();
@@ -28,5 +29,12 @@ const visit = (id, trail) => {
 };
 for (const s of skills) visit(s.id, []);
 
+const themeIds = new Set();
+for (const t of themes) {
+  if (themeIds.has(t.id)) errors.push(`themes.json: id "${t.id}" is used more than once`);
+  themeIds.add(t.id);
+  for (const r of t.skills) if (!byId.has(r)) errors.push(`themes.json: "${t.id}" lists "${r}", which isn't a skill`);
+}
+
 if (errors.length) { console.error(errors.join('\n')); process.exit(1); }
-console.log(`data ok: ${skills.length} skills`);
+console.log(`data ok: ${skills.length} skills, ${themes.length} themes`);

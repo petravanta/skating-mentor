@@ -11,6 +11,7 @@ It runs in any modern browser on phone or desktop, with no sign-up. To get start
 1. Go to **Skates, spots & styles** and edit the example skates and spots to match yours, and pick the styles you care about.
 2. Open **Skill map → List & set levels** and mark the skills you already have, so suggestions start at your level.
 3. On **Today**, choose your skates, spot, time and focus. Remove drills with ×, add your own from **Add an exercise** (or *Add to today's session* on any skill), and tick **Done** or tap how it went as you finish each one. Tap ☆ on any skill or exercise to make it a priority: starred ones get first pick of each session's time, the ones you did least recently first, and are listed under **Your priorities** on Today.
+4. To work toward something specific, open **Focus themes** on Today and pick up to three, such as *Manuals* or *Spins & turns*. About 60% of each session then goes to those themes, the skills that lead up to them and off-skate drills that help, and **Your focus** shows how far along each theme you are. The **Themes** chips on the skill map show one theme's progression, and the Progress log has a *By theme* summary.
 
 Your progress stays in your browser. On a phone, use *Add to Home Screen* to open it like an app. Google Drive sync is optional; while the app's Google sign-in is in testing mode, it only works for Google accounts the owner has added as test users.
 
@@ -32,6 +33,7 @@ The skill graph lives in a plain JSON file, separate from the code, so you can r
 | Dataset | File | Schema | What it controls |
 | --- | --- | --- | --- |
 | Skills | [`data/skills.json`](data/skills.json) | [`skills.schema.json`](data/schema/skills.schema.json) | Every skill and off-skate drill: style, difficulty, which skills come first, the skates and spot features it needs, and practice cues |
+| Focus themes | [`data/themes.json`](data/themes.json) | [`themes.schema.json`](data/schema/themes.schema.json) | Themes you can focus training on (manuals, spins & turns, …) and the skills and drills in each |
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for how to add a skill.
 
@@ -41,7 +43,7 @@ It's a static page, `index.html` plus the skill list in `data/skills.json`, with
 
 ## Google Drive sync
 
-Under *Settings → Google Drive*, **Connect Google Drive** signs you in with Google and keeps a file called `Skating Mentor data.json` in your Drive. It saves a few seconds after each change. When you connect on another device, the app merges both: every logged session is kept, and the most recently edited skates, spots, styles and priorities win. The app uses the `drive.file` permission, which means it can only see the file it creates, not the rest of your Drive.
+Under *Settings → Google Drive*, **Connect Google Drive** signs you in with Google and keeps a file called `Skating Mentor data.json` in your Drive. It saves a few seconds after each change. When you connect on another device, the app merges both: every logged session is kept, and the most recently edited skates, spots, styles, priorities and focus themes win. The app uses the `drive.file` permission, which means it can only see the file it creates, not the rest of your Drive.
 
 Google sign-ins only last about an hour. The app keeps the sign-in across reloads and shares it with petravanta's other apps on the same browser, and when it's close to running out it renews it the next time you tap something (Google may flash a window that closes by itself). If it does lapse, for example after a long break, tap **Resume Drive sync** in the header. Everything still saves in the browser in the meantime.
 

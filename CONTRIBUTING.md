@@ -29,6 +29,10 @@ Here is a complete example:
 }
 ```
 
+## Add or change a focus theme
+
+Focus themes live in [`data/themes.json`](data/themes.json). Each has an `id` (never change one that has shipped: people's choices are saved by id), a `name`, a one-sentence `description`, and `skills`: the on-skate skills that make up the theme plus the off-skate drills that help with it. You don't need to list prerequisites; the app works on whatever leads up to a theme's skills automatically.
+
 ## Add an illustration
 
 Drawings live in [`data/illustrations/`](data/illustrations/) as SVG files, and a skill shows them when it lists them in `illustrations`, e.g. `"illustrations": ["stance.svg"]`. List several to show a step-by-step strip; each one is captioned with the matching cue, up to its colon.
@@ -44,5 +48,6 @@ Anything you can describe with the existing fields is data. A new style, spot fe
 ```sh
 node scripts/check-data.js     # unique ids, references and illustration files exist, no requires loops
 npx ajv-cli@5 validate --spec=draft2020 -s data/schema/skills.schema.json -d data/skills.json
+npx ajv-cli@5 validate --spec=draft2020 -s data/schema/themes.schema.json -d data/themes.json
 python3 -m http.server         # then open http://localhost:8000
 ```
