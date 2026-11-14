@@ -58,3 +58,7 @@ Google needs an OAuth client ID for the site:
 5. Copy the client ID (it ends in `.apps.googleusercontent.com`) into `GOOGLE_CLIENT_ID` near the top of the script in `index.html`. A client ID is safe to publish; it only works from the origins you listed.
 
 With `GOOGLE_CLIENT_ID` left empty, the Drive section says sync isn't set up and everything else works as before.
+
+## License
+
+MIT, see [LICENSE](LICENSE).
