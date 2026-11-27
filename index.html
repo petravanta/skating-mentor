@@ -114,6 +114,20 @@ textarea{resize:vertical}
 .rate button.mark{border-color:var(--lv-conf);color:var(--lv-conf)}
 .item .lvl{display:flex;gap:6px;align-items:center}
 .item .rm{background:none;border:0;padding:0 4px;font-size:20px;line-height:1;color:var(--muted)}.item .rm:hover{color:var(--danger)}
+.role.rt{color:var(--lv-dev)}
+.rate button.have{border-style:dashed;color:var(--muted)}
+.soft{border:1px dashed var(--line);border-radius:var(--r);padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.field .fixed{font-size:15px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--ink);padding:8px 0}
+.rtedit{border-top:1px solid var(--line);margin-top:12px;padding-top:12px}
+.rtlist{display:flex;flex-direction:column}
+.rtrow{display:grid;grid-template-columns:1.5em minmax(0,1fr) auto auto;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line)}
+.rtrow:last-child{border-bottom:0}
+.rtrow .nm{background:none;border:0;padding:0;text-align:left;font-weight:600;color:var(--ink)}
+.rtrow .mins{display:flex;align-items:center;gap:4px;font-size:13px;color:var(--muted)}
+.rtrow input[type=number]{width:4.2em;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:5px 6px;font-size:14px;color:var(--ink)}
+.rtbtns{display:flex;gap:2px}.rtbtns button{background:none;border:1px solid transparent;border-radius:6px;padding:2px 7px;font-size:15px;color:var(--muted)}
+.rtbtns button:hover:not(:disabled){border-color:var(--line);color:var(--ink)}.rtbtns button:disabled{opacity:.3}
+@media (max-width:520px){.rtrow{grid-template-columns:1.2em minmax(0,1fr) auto}.rtrow .rtbtns{grid-column:2/-1;justify-content:flex-end}}
 .item.done{background:var(--sunk)}.item.done .name{text-decoration:line-through;text-decoration-color:var(--muted)}
 .item.done .why,.item.done ul,.item.done .illus{display:none}
 .addpick{max-width:420px}
@@ -323,7 +337,7 @@ const LEVELS=[
   {n:'Not started',min:0},{n:'Learning',min:1},{n:'Developing',min:50},{n:'Confident',min:70},{n:'Solid',min:90}
 ];
 const BASELINE_CONF=[0,25,60,80,95];
-const UNLOCK=50;
+const UNLOCK=50, MASTERED=70;
 const RATINGS=[null,'Not yet','Rarely','Half the time','Most tries','On demand'];
 const RATING_HELP=[null,'Couldn’t land it','A few times','About half my tries','Most tries','Clean, whenever I want'];
 
@@ -344,6 +358,7 @@ function defaultProfile(){return{
   ctx:{skate:'sk1',spot:'sp1',minutes:45,focus:'balanced'},
   favs:[],   // starred skill ids: your priorities, given extra room in each session
   themes:[], // focus theme ids (data/themes.json): sessions lean toward these
+  routines:[], // saved sessions you repeat: {id,name,skate?,spot?,items:[{skill,mins}|{name,mins}|{auto:true,mins}]}
   examples:true
 };}
 let state={profile:defaultProfile(),logs:[],photos:{},deleted:[]};
@@ -352,7 +367,27 @@ let backend='local', dbRef=null, profRef=null, logsCol=null, photosCol=null;
 function lsGet(k){try{return JSON.parse(localStorage.getItem(k)||'null')}catch(e){return null}}
 function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}
 function saveLocal(){lsSet(LS_KEY,state);driveSoon()}
-const local=lsGet(LS_KEY); if(local&&local.profile){state={profile:Object.assign(defaultProfile(),local.profile),logs:Array.isArray(local.logs)?local.logs:[],photos:local.photos||{},deleted:local.deleted||[]}}
+// Fill in fields added since the profile was saved, and tidy routines from older or hand-edited files
+function cleanRoutine(r){
+  if(!r||typeof r!=='object'||typeof r.id!=='string') return null;
+  const items=(Array.isArray(r.items)?r.items:[]).map(it=>{
+    if(!it||typeof it!=='object') return null;
+    const mins=Math.max(1,Math.min(120,Math.round(+it.mins)||5));
+    if(it.auto) return {auto:true,mins};
+    if(typeof it.skill==='string') return {skill:it.skill,mins};   // unknown ids are kept and skipped when planning
+    if(typeof it.name==='string') return {name:it.name.slice(0,80),mins};
+    return null;
+  }).filter(Boolean);
+  const out={id:r.id,name:String(r.name||'Routine').slice(0,60),items};
+  if(typeof r.spot==='string') out.spot=r.spot; if(typeof r.skate==='string') out.skate=r.skate;
+  return out;
+}
+function normProfile(p){
+  const q=Object.assign(defaultProfile(),p||{});
+  q.routines=(Array.isArray(q.routines)?q.routines:[]).map(cleanRoutine).filter(Boolean);
+  return q;
+}
+const local=lsGet(LS_KEY); if(local&&local.profile){state={profile:normProfile(local.profile),logs:Array.isArray(local.logs)?local.logs:[],photos:local.photos||{},deleted:local.deleted||[]}}
 
 function setSaveState(t){document.getElementById('saveState').textContent=t}
 let profTimer=null;
@@ -529,7 +564,7 @@ function mergeRemote(r){
   const byId=new Map(); [...(r.logs||[]),...state.logs].forEach(l=>{if(l&&l.id&&!del.has(l.id))byId.set(l.id,l)});
   const before=JSON.stringify([state.profile,state.logs.length]);
   const newer=(r.profile.updatedAt||'')>(state.profile.updatedAt||'');
-  if(newer) state.profile=Object.assign(defaultProfile(),r.profile);
+  if(newer) state.profile=normProfile(r.profile);
   state.logs=[...byId.values()]; state.deleted=[...del];
   state.photos=Object.assign({},r.photos||{},state.photos);
   const used=new Set([...state.profile.skates,...state.profile.spots].map(k=>k.photo).filter(Boolean));
@@ -593,7 +628,7 @@ async function initCloud(){
     const [ps,ls,ph]=await Promise.all([profRef.get(),logsCol.orderBy('ts','desc').limit(1000).get(),photosCol.limit(200).get()]);
     backend='cloud';
     if(ps.exists){
-      state.profile=Object.assign(defaultProfile(),ps.data());
+      state.profile=normProfile(ps.data());
       state.logs=ls.docs.map(d=>d.data()).filter(Boolean);
       state.photos={}; ph.docs.forEach(d=>{const x=d.data();if(x&&x.data)state.photos[d.id]=x.data});
       saveLocal(); planCache=null; render();
@@ -615,25 +650,41 @@ function computeConf(){
   [...state.logs].sort((a,b)=>a.ts<b.ts?-1:1).forEach(l=>{(by[l.skill]=by[l.skill]||[]).push(l)});
   CONF={};
   for(const id in by){
-    let v=0,n=0,last=null,sessions=0;
+    let v=0,n=0,last=null,sessions=0,peak=0,ondemand=false;
     for(const l of by[id]){
-      if(l.base!=null){ if(l.base===0){v=0;n=0} else {v=l.base;n=3} }
-      else { const r=l.r/5*100; v=n===0?r:v*0.6+r*0.4; n++; sessions++ }
+      if(l.base!=null){ if(l.base===0){v=0;n=0;peak=0;ondemand=false} else {v=l.base;n=3} }
+      else { const r=l.r/5*100; v=n===0?r:v*0.6+r*0.4; n++; sessions++; if(l.r===5) ondemand=true }
+      if(n) peak=Math.max(peak,v*Math.min(1,0.6+0.2*(n-1)));
       last=l.ts;
     }
     if(n===0){continue}
     const days=(Date.now()-new Date(last).getTime())/DAY;
     const fresh=Math.max(0.8,1-Math.max(0,days-14)/365*0.5);
     const c=Math.round(v*Math.min(1,0.6+0.2*(n-1))*fresh);
-    CONF[id]={c:Math.max(1,c),last,days,sessions};
+    // comfortable once: reached Confident, or landed it on demand. That sticks, whatever a bad day or a long break does to the number.
+    CONF[id]={c:Math.max(1,c),last,days,sessions,comfy:peak>=MASTERED||ondemand};
   }
+  // What you have: skills at Developing or better, skills you've been comfortable with, and everything they build on.
+  // If you can do a crossover you can obviously stride, so the basics behind a skill you have never hold you back.
+  HAVE=new Set(); IMPLIED=new Set();
+  const own=id=>CONF[id]&&(CONF[id].c>=UNLOCK||CONF[id].comfy);
+  const up=id=>BYID[id].req.forEach(r=>{if(!HAVE.has(r)){HAVE.add(r);if(!own(r))IMPLIED.add(r);up(r)}});
+  const mine=Object.keys(CONF).filter(id=>BYID[id]&&own(id));
+  mine.forEach(id=>HAVE.add(id)); mine.forEach(up);
 }
+let HAVE=new Set(), IMPLIED=new Set();
 const conf=id=>CONF[id]?CONF[id].c:0;
+const has=id=>HAVE.has(id);
+// comfortable with it: reached Confident once, or counted as known because you have a skill beyond it
+const comfy=id=>!!(CONF[id]&&CONF[id].comfy)||IMPLIED.has(id);
+const missing=s=>s.req.filter(r=>!has(r));
 function levelOf(c){let i=0;LEVELS.forEach((L,k)=>{if(c>=L.min)i=k});return i}
-const unlocked=s=>s.req.every(r=>conf(r)>=UNLOCK);
+// Prerequisites are a recommendation, not a gate: "unlocked" just means everything it builds on is in hand
+const unlocked=s=>s.req.every(has);
 function pill(id){
   const s=BYID[id], c=conf(id), lv=levelOf(c);
-  if(c===0&&!unlocked(s)) return `<span class="pill lock">Locked</span>`;
+  if(c===0&&IMPLIED.has(id)) return `<span class="pill l3" title="Counted as known: you have a skill that builds on it">Have it</span>`;
+  if(c===0&&!unlocked(s)) return `<span class="pill lock" title="Recommended first: ${esc(missing(s).map(r=>BYID[r].n).join(', '))}">Recommended later</span>`;
   if(c===0) return `<span class="pill">Ready to start</span>`;
   return `<span class="pill l${lv}">${LEVELS[lv].n} <span class="pct">${c}%</span></span>`;
 }
@@ -690,7 +741,7 @@ function toggleTheme(id){
 function themeStats(t){
   const sk=t.ids.filter(id=>BYID[id].st!=='O'), cs=sk.map(conf);
   const next=sk.filter(id=>conf(id)<70&&unlocked(BYID[id])).sort((a,b)=>conf(b)-conf(a)||BYID[a].d-BYID[b].d);
-  const path=next.length?[]:[...THEME_PATH[t.id].keys()].filter(id=>conf(id)<UNLOCK&&unlocked(BYID[id])).sort((a,b)=>BYID[a].d-BYID[b].d);
+  const path=next.length?[]:[...THEME_PATH[t.id].keys()].filter(id=>!has(id)&&unlocked(BYID[id])).sort((a,b)=>BYID[a].d-BYID[b].d);
   return {n:sk.length,avg:Math.round(cs.reduce((a,c)=>a+c,0)/(sk.length||1)),conf:cs.filter(c=>c>=70).length,prog:cs.filter(c=>c>0&&c<70).length,next:next.concat(path).slice(0,3)};
 }
 function themeBar(t,link){
@@ -705,8 +756,10 @@ function themeBar(t,link){
 /* ---------------- Recommender ---------------- */
 function hash(str){let h=2166136261;for(const ch of str){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)}return (h>>>0)/4294967296}
 function descendants(id,acc=new Set()){(CHILDREN[id]||[]).forEach(c=>{if(!acc.has(c)){acc.add(c);descendants(c,acc)}});return acc}
-function userLevel(){const got=SKILLS.filter(s=>s.st!=='O'&&conf(s.id)>=UNLOCK);return got.length?got.reduce((a,s)=>a+s.d,0)/got.length:1}
+// Your level: the average difficulty of the hardest on-skate skills you have, so a pile of basics doesn't drag it down
+function userLevel(){const got=SKILLS.filter(s=>s.st!=='O'&&has(s.id)).map(s=>s.d).sort((a,b)=>b-a).slice(0,8);return got.length?got.reduce((a,d)=>a+d,0)/got.length:1}
 let planCache=null;
+let pendingBulk=null;
 // Minutes for one exercise: first-week skills only need a few focused minutes, harder ones get longer blocks
 function itemMins(s,role){
   const base=[4,4,6,8,10,12][s.d]||6;
@@ -714,11 +767,13 @@ function itemMins(s,role){
   if(role==='off') return Math.min(8,base+1);
   return Math.max(3,base+(role==='new'?2:role==='review'?-1:0));
 }
-function buildPlan(seed,keep=[]){
+// opt.mins: fill exactly this many minutes (a routine's coach's picks block); opt.exclude: skill ids already in the session
+function buildPlan(seed,keep=[],opt={}){
   const p=state.profile, ctx=p.ctx, skate=curSkate(), spot=curSpot();
   const offOnly=!skate||spot.surface==='home';
   const lvl=userLevel(), focus=ctx.focus;
-  const kept=new Set(keep.map(it=>it.id)), mins=Math.max(0,+ctx.minutes-keep.reduce((a,it)=>a+it.mins,0));
+  const kept=new Set([...keep.map(it=>it.id),...(opt.exclude||[])]);
+  const mins=opt.mins!=null?opt.mins:Math.max(0,+ctx.minutes-keep.reduce((a,it)=>a+it.mins,0));
   const cands=[], elsewhere=[];
   for(const s of SKILLS){
     // your priorities come along even when they're locked or in a style you've turned off: you picked them
@@ -727,6 +782,9 @@ function buildPlan(seed,keep=[]){
     if(!fav&&(!(styleOn(s)||th)||!unlocked(s))||kept.has(s.id)) continue;
     const c=conf(s.id), info=CONF[s.id];
     let kind=c===0?'new':c<70?'work':(info&&info.days>21)||c<85?'review':'solid';
+    // basics you're already comfortable with stay out of the way: warm-up material, not session time.
+    // Star one, or pick Build consistency, to drill it anyway.
+    if(comfy(s.id)&&(c===0||focus!=='consolidate')) kind='solid';
     if(fav&&kind==='solid') kind='review';
     if(th&&th.toward&&kind!=='new'&&kind!=='work') th=null;   // already have it: nothing to open up
     if(s.st==='O'){cands.push({s,kind,score:0,off:true,fav,th});continue}
@@ -736,8 +794,8 @@ function buildPlan(seed,keep=[]){
     const lev=[...descendants(s.id)].filter(x=>styleOn(BYID[x])).length;
     if(kind==='work'){score=55+(70-c)*0.25+(info.days<10?8:0); why=`At ${c}%. ${info.days<1?'You worked on it today':info.days<10?'Keep the momentum from '+ago(info.last):'Last practised '+ago(info.last)}.`}
     else if(kind==='new'){score=38+Math.min(lev,8)*2.5-Math.max(0,s.d-lvl-0.5)*9; why=lev?`New and unlocked. Leads to ${lev} more skill${lev>1?'s':''}.`:'New and unlocked.'}
-    else if(kind==='review'){score=22+Math.min(info.days,60)/3; why=info.days>21?`Solid before, but last practised ${ago(info.last)}.`:`Confident at ${c}%. A few clean reps will lock it in.`}
-    else {score=5; why=`Solid at ${c}%. Good for warming up.`}
+    else if(kind==='review'){const dd=info?info.days:0; score=22+Math.min(dd,60)/3; why=!info?'You have this already. A few clean reps keep it sharp.':dd>21?`Solid before, but last practised ${ago(info.last)}.`:`Confident at ${c}%. A few clean reps will lock it in.`}
+    else {score=5; why=c?`Solid at ${c}%. Good for warming up.`:'You have this already. Good for warming up.'}
     if(focus==='new'&&kind==='new') score+=22;
     if(focus==='consolidate'){ if(kind==='work') score+=14; if(kind==='review') score+=16; if(kind==='new') score-=15 }
     if(focus==='easy'){ score-=Math.max(0,s.d-lvl)*10; if(kind==='review'||kind==='solid') score+=12 }
@@ -752,7 +810,7 @@ function buildPlan(seed,keep=[]){
     if(fav){
       // well ahead of everything else, and the longer since you last did it, the sooner it comes back
       score+=45+Math.min(info?info.days:14,14)*2;
-      why='One of your priorities. '+(unlocked(s)?why:'It builds on '+s.req.filter(r=>conf(r)<UNLOCK).map(r=>BYID[r].n).join(' and ')+', so take it slowly.');
+      why='One of your priorities. '+(unlocked(s)?why:'It builds on '+missing(s).map(r=>BYID[r].n).join(' and ')+', so take it slowly.');
     }
     cands.push({s,kind,score,why,fav,th});
   }
@@ -774,8 +832,8 @@ function buildPlan(seed,keep=[]){
     const sk=cands.filter(x=>!x.off).sort((a,b)=>b.score-a.score);
     // priorities get their own blocks, so they never end up as the warm-up
     const warmPool=sk.filter(x=>!x.fav&&(x.kind==='solid'||x.kind==='review')&&x.s.d<=Math.max(2,lvl)).sort((a,b)=>a.s.d-b.s.d||b.score-a.score);
-    const warm=keep.length?null:warmPool[0]||sk.find(x=>!x.fav&&x.s.d<=2)||null;
-    const maxNew=focus==='new'?Math.max(1,Math.round(mins/25)):(focus==='consolidate'?0:Math.max(1,Math.round(mins/50)));
+    const warm=keep.length||opt.noWarm?null:warmPool[0]||sk.find(x=>!x.fav&&x.s.d<=2)||null;
+    const maxNew=focus==='new'?Math.max(1,Math.round(mins/20)):(focus==='consolidate'?0:Math.max(1,Math.round(mins/30)));
     const offs=mins>=25?cands.filter(x=>x.off):[];
     // a second off-skate block on longer days when you have off-skate priorities to fit in
     const offN=offs.length?(mins>=45&&(offs.filter(x=>x.fav).length>=2||offs.some(x=>x.th&&!x.th.toward))?2:1):0;
@@ -809,12 +867,13 @@ function buildPlan(seed,keep=[]){
       if(x.kind==='new'&&nNew>=maxNew) continue;
       // leave the rest of the session for other things, so the basics don't slip while you focus
       if(x.th&&tOn.length&&tMins>=mins*0.6&&sk.some(y=>!y.th&&!isPicked(y)&&y.kind!=='solid'&&(!warm||y.s.id!==warm.s.id)&&(y.kind!=='new'||nNew<maxNew))) continue;
-      if(x.kind==='solid'&&sk.some(y=>y.kind!=='solid'&&!isPicked(y)&&(!warm||y.s.id!==warm.s.id)&&(y.kind!=='new'||nNew<maxNew))) continue;
+      if(x.kind==='solid') continue;   // things you already have come last, only if nothing else fits
       const m=take(x); if(x.th) tMins+=m;
     }
-    // nothing in progress yet (a new skater): fill the remaining time with more new skills
-    for(const x of sk){ if(picked.length>=slots||left<3) break; if(!isPicked(x)&&x.kind==='new'&&(!warm||x.s.id!==warm.s.id)) take(x) }
-    if(warm) items.push({id:warm.s.id,role:'warm',mins:warmTime,why:(conf(warm.s.id)>0?'Easy start on something you already have. ':'Easy start to get your legs under you. ')+(warm.s.cues[0]||'')+'.'});
+    // not much in progress: fill the remaining time with more new skills rather than things you already have
+    if(focus!=='consolidate') for(const x of sk){ if(picked.length>=slots||left<3) break; if(!isPicked(x)&&x.kind==='new'&&(!warm||x.s.id!==warm.s.id)) take(x) }
+    for(const x of sk){ if(picked.length>=slots||left<3) break; if(!isPicked(x)&&x.kind==='solid'&&(!warm||x.s.id!==warm.s.id)) take(x) }
+    if(warm) items.push({id:warm.s.id,role:'warm',mins:warmTime,why:(conf(warm.s.id)>0||comfy(warm.s.id)?'Easy start on something you already have. ':'Easy start to get your legs under you. ')+(warm.s.cues[0]||'')+'.'});
     picked.forEach(({x,role,m})=>items.push({id:x.s.id,role,mins:m,why:x.why,theme:themeTag(x.s.id)}));
     stretch(mins-warmTime-offTime);
     if(offN){
@@ -852,7 +911,10 @@ function offWhy(s,focusIds){
 // The focus theme an item counts toward, shown on its card
 function themeTag(id){const l=themeLink(id); return l&&!l.toward?l.themes[0]:undefined}
 function ago(ts){const d=Math.floor((Date.now()-new Date(ts).getTime())/DAY);return d<=0?'today':d===1?'yesterday':d<14?d+' days ago':d<60?Math.round(d/7)+' weeks ago':Math.round(d/30)+' months ago'}
-function ctxKey(){const c=state.profile.ctx, th=themesOn();return [c.skate,c.spot,c.minutes,c.focus,state.profile.styles.join('')].concat(th.length?[th.join(',')]:[]).join('|')}
+function ctxKey(){const c=state.profile.ctx, th=themesOn(), r=curRoutine();
+  // a routine sets its own length, and editing it gives a new plan
+  if(r) return ['r:'+r.id,Math.floor(hash(JSON.stringify(r.items))*1e9).toString(36),c.skate,c.spot,c.focus,state.profile.styles.join(''),th.join(',')].join('|');
+  return [c.skate,c.spot,c.minutes,c.focus,state.profile.styles.join('')].concat(th.length?[th.join(',')]:[]).join('|')}
 function getPlan(){
   const today=new Date().toISOString().slice(0,10), key=ctxKey();
   if(planCache&&planCache.key===key&&planCache.day===today) return planCache;
@@ -867,10 +929,85 @@ function migratePlan(pl){if(pl&&pl.done){pl.items.forEach((it,i)=>{if(pl.done[i]
 // Same day, new plan: keep what you've already done, and what you picked yourself if it still works here
 function freshPlan(key,day,seed,prev){
   prev=migratePlan(prev);
+  const r=curRoutine();
+  if(r){const pl={key,day,seed,...routinePlan(r,seed,prev&&prev.day===day&&prev.routine===r.id?prev:null)}; lsSet(LS_PLAN,pl); return pl}
   const skate=curSkate(), spot=curSpot();
   const keep=prev&&prev.day===day?prev.items.filter(it=>BYID[it.id]&&(it.done||it.role==='pick'&&!blocker(BYID[it.id],skate,spot))):[];
   const pl={key,day,seed,...buildPlan(seed,keep)}; pl.items=keep.concat(pl.items);
   lsSet(LS_PLAN,pl); return pl;
+}
+/* ---------------- Routines ---------------- */
+// A routine is a session you repeat, like a 30 minute home workout or your rink warm-up: exercises in order with their
+// minutes, steps of your own, and coach's picks blocks that the planner fills with whatever you're working on now.
+// They live in profile.routines, so they sync to Drive and go into backups with the rest of the profile.
+let activeRoutine=null, editingRoutine=null;
+{const sp=lsGet(LS_PLAN); if(sp&&sp.routine&&sp.day===new Date().toISOString().slice(0,10)) activeRoutine=sp.routine}
+const routines=()=>Array.isArray(state.profile.routines)?state.profile.routines:(state.profile.routines=[]);
+const routineBy=id=>routines().find(r=>r.id===id)||null;
+const curRoutine=()=>activeRoutine&&routineBy(activeRoutine);
+const routineMins=r=>r.items.reduce((a,x)=>a+x.mins,0);
+const stepName=x=>x.auto?'Coach’s picks':x.skill?(BYID[x.skill]?BYID[x.skill].n:'Exercise no longer in the app'):x.name;
+function routinePlan(r,seed,prev){
+  const skate=curSkate(), spot=curSpot(), items=[];
+  const used=new Set(r.items.filter(x=>x.skill).map(x=>x.skill));
+  const picks=prev?prev.items.filter(it=>it.role==='pick'):[]; picks.forEach(it=>used.add(it.id));
+  r.items.forEach((x,k)=>{
+    const old=prev?prev.items.filter(it=>it.rk===k):[];
+    if(x.auto){
+      // done ones stay, the rest of the block is planned fresh around everything else in the routine
+      const done=old.filter(it=>it.done); done.forEach(it=>used.add(it.id));
+      const left=x.mins-done.reduce((a,it)=>a+it.mins,0);
+      const got=left>=3?buildPlan(seed+'#'+k,[],{mins:left,exclude:used,noWarm:true}).items:[];
+      got.forEach(it=>{used.add(it.id); it.rk=k});
+      items.push(...done,...got);
+      return;
+    }
+    if(x.skill&&!BYID[x.skill]) return;
+    const b=x.skill?blocker(BYID[x.skill],skate,spot):null;
+    const it=x.skill?{id:x.skill,role:'rt',mins:x.mins,rk:k,why:b?`It ${b}, so swap it for something else today.`:''}:{id:'step'+k,cn:x.name||'Your own step',role:'rt',mins:x.mins,rk:k,why:''};
+    if(old[0]&&old[0].done) it.done=old[0].done;
+    items.push(it);
+  });
+  items.push(...picks.filter(it=>!items.some(y=>y.id===it.id)));
+  return {items,elsewhere:[],offOnly:!skate||spot.surface==='home',routine:r.id};
+}
+function startRoutine(id){
+  const r=routineBy(id); if(!r) return;
+  const p=state.profile, c=p.ctx;
+  if(r.spot&&p.spots.some(k=>k.id===r.spot)) c.spot=r.spot;
+  if(r.skate&&(r.skate==='none'||p.skates.some(k=>k.id===r.skate))) c.skate=r.skate;
+  activeRoutine=id; editingRoutine=null; planCache=null; saveProfile();
+  tab='today'; selected=null; render(); window.scrollTo(0,0);
+  toast(`${r.name} started`);
+}
+function stopRoutine(){activeRoutine=null; planCache=null; render()}
+function newRoutine(r){
+  r.id='rt'+uid6(); routines().push(r); editingRoutine=r.id; touchProfile(); render();
+  const el=document.getElementById('rtEdit'); if(el) el.scrollIntoView({block:'start',behavior:'smooth'});
+}
+// Today's session as it stands, ready to repeat
+function routineFromPlan(){
+  const pl=getPlan(), spot=curSpot(), c=state.profile.ctx, cur=curRoutine();
+  const items=pl.items.map(it=>it.cn?{name:it.cn,mins:it.mins}:{skill:it.id,mins:it.mins});
+  const total=items.reduce((a,x)=>a+x.mins,0);
+  return {name:cur?cur.name+' (copy)':`${spot.name} ${total} min`,spot:c.spot,skate:c.skate,items};
+}
+// Two starting points: a home workout, and a rink session that warms up on basics before the coach takes over
+function sampleRoutines(){
+  const p=state.profile, home=p.spots.find(k=>k.surface==='home'), rink=p.spots.find(k=>k.surface==='rink')||p.spots.find(k=>k.surface==='smooth');
+  const sk=p.ctx.skate!=='none'?p.ctx.skate:(p.skates[0]||{}).id;
+  const out=[{name:'Home 30 min',...(home?{spot:home.id}:{}),skate:'none',items:[{skill:'hip-circles',mins:4},{skill:'squat',mins:5},{skill:'lateral',mins:5},{skill:'balance',mins:4},{auto:true,mins:8},{skill:'stretch',mins:4}]},
+    {name:'Rink 45 min',...(rink?{spot:rink.id}:{}),...(sk?{skate:sk}:{}),items:[{skill:'stride',mins:3},{skill:'swizzle',mins:3},{skill:'bswizzle',mins:3},{skill:'edges',mins:3},{auto:true,mins:30},{skill:'stretch',mins:3}]}];
+  out.forEach(r=>{r.id='rt'+uid6(); r.items=r.items.filter(x=>!x.skill||BYID[x.skill]); routines().push(r)});
+  touchProfile(); render(); toast('Added two sample routines. Edit them to make them yours.');
+}
+// Mark skills you already have as Confident: they, and everything they build on, stop holding sessions back
+async function markHave(ids){
+  const c=state.profile.ctx, ts=new Date().toISOString();
+  for(const id of ids) await saveLog({id:uid6(),ts,skill:id,base:BASELINE_CONF[3],skate:c.skate,spot:c.spot});
+  state.profile.examples=false; saveProfile(); computeConf();
+  if(planCache) planCache=freshPlan(planCache.key,planCache.day,planCache.seed,planCache);
+  render();
 }
 function reshuffle(){
   const key=ctxKey(), today=new Date().toISOString().slice(0,10), seed=today+'#'+uid6();
@@ -885,7 +1022,7 @@ function pickable(){
 function addToPlan(id){
   const s=BYID[id], pl=getPlan(); if(!s||pl.items.some(it=>it.id===id)) return;
   const c=conf(id), role=c===0?'new':c<70?'work':'review';
-  const item={id,role:'pick',mins:itemMins(s,s.st==='O'?'off':role),why:unlocked(s)?'You added this.':'You added this. It builds on '+s.req.filter(r=>conf(r)<UNLOCK).map(r=>BYID[r].n).join(' and ')+', so take it slowly.'};
+  const item={id,role:'pick',mins:itemMins(s,s.st==='O'?'off':role),why:unlocked(s)?'You added this.':'You added this. It builds on '+missing(s).map(r=>BYID[r].n).join(' and ')+', so take it slowly.'};
   // skating goes before the off-skate cool-down, off-skate at the end
   const at=s.st==='O'?pl.items.length:pl.items.findIndex(it=>it.role==='off'&&!it.done);
   pl.items.splice(at<0?pl.items.length:at,0,item); savePlan();
@@ -914,26 +1051,38 @@ function viewToday(){
   const anyLogs=state.logs.length>0, nDone=plan.items.filter(it=>it.done).length; const total=plan.items.reduce((a,x)=>a+x.mins,0);
   const pickList=pickable(), byStyle=k=>pickList.filter(s=>s.st===k).sort((a,b)=>(unlocked(b)-unlocked(a))||a.d-b.d||a.n.localeCompare(b.n));
   const pickGroups=Object.keys(STYLES).filter(k=>byStyle(k).length).map(k=>`<optgroup label="${esc(STYLES[k].n)}">${byStyle(k).map(s=>`<option value="${s.id}">${esc(s.n)}${unlocked(s)?'':' (not unlocked yet)'}</option>`).join('')}</optgroup>`).join('');
+  const rt=curRoutine();
   const items=plan.items.map((it,i)=>{
     const s=BYID[it.id], done=it.done;
-    const roleName={warm:'Warm-up',work:'Keep building',new:'New skill',review:'Review',off:'Off-skate',pick:'Your pick',fav:'Priority'}[it.role];
+    const doneRow=`<div class="rate">${done?`<span class="logged">✓ Done</span> <button data-undo="${i}">Undo</button>`:`<button class="mark" data-markdone="${i}">✓ Done</button>`}</div>`;
+    // a step of your own in a routine: no skill behind it, so just tick it off
+    if(!s) return it.cn!=null?`<article class="item${done?' done':''}">
+      <div class="slot"><b>${it.mins}</b><span>min</span></div>
+      <div class="role rt">Routine</div>
+      <div class="lvl"><button class="rm" data-rmitem="${i}" aria-label="Remove ${esc(it.cn)} from today" title="Remove from today">×</button></div>
+      <p class="name">${esc(it.cn)}</p>${doneRow}</article>`:'';
+    const roleName={warm:'Warm-up',work:'Keep building',new:'New skill',review:'Review',off:'Off-skate',pick:'Your pick',fav:'Priority',rt:'Routine'}[it.role];
+    const canHave=!done&&s.st!=='O'&&!comfy(s.id)&&conf(s.id)<70&&['new','work','pick','fav'].includes(it.role);
     return `<article class="item${done?' done':''}">
       <div class="slot"><b>${it.mins}</b><span>min</span></div>
       <div class="role ${it.role}">${roleName}${s.st!=='O'?' · '+esc(STYLES[s.st].n):''}${it.theme&&THEME_BY[it.theme]?`<span class="tag">${esc(THEME_BY[it.theme].n)}</span>`:''}</div>
       <div class="lvl">${pill(s.id)}${star(s.id)}<button class="rm" data-rmitem="${i}" aria-label="Remove ${esc(s.n)} from today" title="Remove from today">×</button></div>
       <button class="name" data-open="${s.id}">${esc(s.n)}</button>
-      <p class="why" style="grid-column:2/span 2">${esc(it.why)}</p>
+      ${it.why?`<p class="why" style="grid-column:2/span 2">${esc(it.why)}</p>`:''}
       <ul style="grid-column:2/span 2">${s.cues.slice(0,s.st==='O'?s.cues.length:2).map(q=>`<li>${esc(q)}</li>`).join('')}</ul>
       ${illus(s,'card')}
       <div class="rate">${done&&done.r?`<span class="logged">✓ Done · ${RATINGS[done.r]}</span> <button data-undo="${i}">Undo</button>`:
-        `${done?`<span class="logged">✓ Done</span> <button data-undo="${i}">Undo</button> <span class="lbl">Rate it?</span>`:`<button class="mark" data-markdone="${i}">✓ Done</button> <span class="lbl">or how did it go?</span>`}${[1,2,3,4,5].map(r=>`<button data-rate="${r}" data-item="${i}" title="${RATING_HELP[r]}">${RATINGS[r]}</button>`).join('')}`}</div>
+        `${done?`<span class="logged">✓ Done</span> <button data-undo="${i}">Undo</button> <span class="lbl">Rate it?</span>`:`<button class="mark" data-markdone="${i}">✓ Done</button> <span class="lbl">or how did it go?</span>`}${[1,2,3,4,5].map(r=>`<button data-rate="${r}" data-item="${i}" title="${RATING_HELP[r]}">${RATINGS[r]}</button>`).join('')}${canHave?`<button class="have" data-haveit="${i}" title="Counts it as Confident, along with everything it builds on, and swaps in something else">Already have it</button>`:''}`}</div>
     </article>`}).join('');
+  const spotName=id=>(p.spots.find(k=>k.id===id)||{}).name, skateName=id=>id==='none'?'No skates':(p.skates.find(k=>k.id===id)||{}).name;
+  const rtRows=routines().map(r=>`<div class="srow" style="grid-template-columns:minmax(0,1fr) auto auto"><span><b>${esc(r.name)}</b> <span class="muted small">${routineMins(r)} min${[spotName(r.spot),skateName(r.skate)].filter(Boolean).length?' · '+esc([spotName(r.spot),skateName(r.skate)].filter(Boolean).join(', ')):''}</span></span>
+    ${activeRoutine===r.id?`<span class="pill l3">Running</span>`:`<button class="btn sm primary" data-startroutine="${r.id}">Start</button>`}<button class="btn sm ghost" data-editroutine="${r.id}">Edit</button></div>`).join('');
   const inPlan=new Set(plan.items.map(it=>it.id));
   const favRows=favs().filter(id=>BYID[id]).map(id=>{const s=BYID[id], b=blocker(s,skate,spot)||(plan.offOnly&&s.st!=='O'?'needs skates on':null);
     return `<div class="srow" style="grid-template-columns:auto minmax(0,1fr) auto">${star(id)}<span><button class="nm" data-open="${id}">${esc(s.n)}</button> <span class="muted small">${inPlan.has(id)?'in today’s session':b?esc(b):!unlocked(s)&&conf(id)===0?'not unlocked yet':''}</span></span>
       ${!inPlan.has(id)&&!b?`<button class="btn sm" data-addplan="${id}">Add</button>`:pill(id)}</div>`}).join('');
-  const nearly=SKILLS.filter(s=>(styleOn(s)||inFocus(s))&&s.st!=='O'&&!unlocked(s)&&conf(s.id)===0&&s.req.filter(r=>conf(r)<UNLOCK).length===1)
-    .map(s=>({s,r:s.req.find(r=>conf(r)<UNLOCK),th:inFocus(s)})).filter(x=>conf(x.r)>0).sort((a,b)=>b.th-a.th).slice(0,5);
+  const nearly=SKILLS.filter(s=>(styleOn(s)||inFocus(s))&&s.st!=='O'&&!unlocked(s)&&conf(s.id)===0&&missing(s).length===1)
+    .map(s=>({s,r:missing(s)[0],th:inFocus(s)})).filter(x=>conf(x.r)>0).sort((a,b)=>b.th-a.th).slice(0,5);
   return `<div class="stack">
     ${p.examples&&!anyLogs?`<div class="banner"><p><b>Start by setting yourself up.</b> The skates and spots below are examples. Edit them to match yours, then mark the skills you already have so recommendations start at your level.</p>
       <div class="row"><button class="btn primary" data-goto="map" data-list="1">Mark skills I have</button><button class="btn" data-goto="gear">Edit skates &amp; spots</button></div></div>`:''}
@@ -941,7 +1090,7 @@ function viewToday(){
       <div class="ctx">
         <label class="field" for="cSkate">Skates<select id="cSkate" data-ctx="skate">${opt([...p.skates.map(k=>[k.id,k.name]),['none','No skates (off-skate)']],c.skate)}</select></label>
         <label class="field" for="cSpot">Spot<select id="cSpot" data-ctx="spot">${opt(p.spots.map(k=>[k.id,k.name]),c.spot)}</select></label>
-        <label class="field" for="cMin">Time<select id="cMin" data-ctx="minutes">${opt([[20,'20 min'],[30,'30 min'],[45,'45 min'],[60,'1 hour'],[90,'1½ hours'],[120,'2 hours']],c.minutes)}</select></label>
+        ${rt?`<label class="field">Time<span class="fixed">${routineMins(rt)} min routine</span></label>`:`<label class="field" for="cMin">Time<select id="cMin" data-ctx="minutes">${opt([[20,'20 min'],[30,'30 min'],[45,'45 min'],[60,'1 hour'],[90,'1½ hours'],[120,'2 hours']],c.minutes)}</select></label>`}
         <label class="field" for="cFocus">Focus<select id="cFocus" data-ctx="focus">${opt([['balanced','Balanced'],['new','Learn something new'],['consolidate','Build consistency'],['easy','Easy day']],c.focus)}</select></label>
       </div>
       ${[skate,spot].some(k=>k&&k.photo&&state.photos[k.photo])?`<div class="row ctx-photos">${[skate,spot].filter(k=>k&&k.photo&&state.photos[k.photo]).map(k=>`<img src="${state.photos[k.photo]}" data-ph="${k.photo}" alt="${esc(k.name)}"${edgeStyle(k.photo)}>`).join('')}</div>`:''}
@@ -952,13 +1101,21 @@ function viewToday(){
         <p class="muted small">Pick up to ${MAX_THEMES} things to get good at. About 60% of each session goes to them and the skills that lead up to them, with off-skate drills that help. The rest keeps everything else ticking over.</p>
       </details>`:''}
     </section>
+    ${rt?`<div class="banner"><p><b>${esc(rt.name)}</b> is running. ${rt.items.some(x=>x.auto)?'Coach’s picks blocks are filled with what you’re working on now.':'Add a Coach’s picks block to mix in what you’re working on.'}</p>
+      <div class="row"><button class="btn sm" data-editroutine="${rt.id}">Edit routine</button><button class="btn sm" data-act="stopRoutine">Back to the coach’s plan</button></div></div>`:''}
     <div class="row" style="justify-content:space-between">
-      <h2>${plan.offOnly?'Off-skate session':'Today’s session'} <span class="muted mono" style="font-size:14px">${total} min${nDone?` · ${nDone} of ${plan.items.length} done`:''}</span></h2>
-      <button class="btn sm" data-act="shuffle">Suggest different skills</button>
+      <h2>${rt?esc(rt.name):plan.offOnly?'Off-skate session':'Today’s session'} <span class="muted mono" style="font-size:14px">${total} min${nDone?` · ${nDone} of ${plan.items.length} done`:''}</span></h2>
+      ${!rt||rt.items.some(x=>x.auto)?`<button class="btn sm" data-act="shuffle">Suggest different skills</button>`:''}
     </div>
     <div class="plan">${items||`<div class="panel empty">Nothing fits this combination. Try another spot, or turn on more styles under Skates, spots &amp; styles.</div>`}</div>
-    ${items&&total<+c.minutes-5&&pickList.length?`<p class="muted small">That’s all that fits your level here for now. Add more below, or repeat the ones above.</p>`:''}
+    ${items&&!rt&&total<+c.minutes-5&&pickList.length?`<p class="muted small">That’s all that fits your level here for now. Add more below, or repeat the ones above.</p>`:''}
     ${pickList.length?`<label class="field addpick" for="addPick">Add an exercise<select id="addPick" data-addpick="1"><option value="">Choose a skill or exercise…</option>${pickGroups}</select></label>`:''}
+    <section class="panel" id="rtPanel"><div class="row" style="justify-content:space-between"><h3>Routines</h3>
+      <div class="row">${items?`<button class="btn sm" data-act="saveRoutine">Save this session as a routine</button>`:''}<button class="btn sm" data-act="newRoutine">New routine</button></div></div>
+      ${rtRows?`<div class="slist">${rtRows}</div>`:`<p class="muted small" style="margin-top:6px">Sessions you repeat, like a 30 minute home workout or your usual rink warm-up, started in one tap. Add a Coach’s picks block and the app fills it with whatever you’re working on.</p>
+        <div class="row" style="margin-top:8px"><button class="btn sm" data-act="sampleRoutine">Add sample routines</button></div>`}
+      ${editingRoutine&&routineBy(editingRoutine)?routineEditor(routineBy(editingRoutine)):''}
+    </section>
     <section class="panel"><h3>Your priorities</h3>${favRows?`<div class="slist">${favRows}</div>
       <p class="muted small" style="margin-top:6px">Priorities get first pick of each session’s time, the ones you did least recently first. Changes show up in your next session, or tap Suggest different skills.</p>`:
       `<p class="muted small" style="margin-top:6px">Tap ☆ on any skill or exercise you want in high rotation. Starred ones get first pick of each session’s time.</p>`}</section>
@@ -967,6 +1124,31 @@ function viewToday(){
       ${plan.elsewhere.length?`<section class="panel"><h3>Not possible here</h3><div class="hint-list">${plan.elsewhere.map(x=>`<div><button data-open="${x.s.id}">${x.fav?'★ ':''}${esc(x.s.n)}</button> <span class="muted small">${esc(x.b)}</span></div>`).join('')}</div></section>`:''}
       ${nearly.length?`<section class="panel"><h3>Almost unlocked</h3><div class="hint-list">${nearly.map(x=>`<div><button data-open="${x.s.id}">${esc(x.s.n)}</button>${x.th&&themeTag(x.s.id)?`<span class="tag">${esc(THEME_BY[themeTag(x.s.id)].n)}</span>`:''} <span class="muted small">get ${esc(BYID[x.r].n)} to Developing</span></div>`).join('')}</div></section>`:''}
     </div>
+  </div>`;
+}
+function routineEditor(r){
+  const p=state.profile, total=routineMins(r);
+  const opt=(arr,val)=>arr.map(([v,l])=>`<option value="${esc(v)}"${String(v)===String(val||'')?' selected':''}>${esc(l)}</option>`).join('');
+  const groups=Object.keys(STYLES).map(k=>{const l=SKILLS.filter(s=>s.st===k&&(styleOn(s)||inFocus(s)||k==='O')).sort((a,b)=>a.d-b.d||a.n.localeCompare(b.n));
+    return l.length?`<optgroup label="${esc(STYLES[k].n)}">${l.map(s=>`<option value="${s.id}">${esc(s.n)}</option>`).join('')}</optgroup>`:''}).join('');
+  const rows=r.items.map((x,k)=>`<div class="rtrow">
+    <span class="mono muted">${k+1}</span>
+    ${x.name!=null&&!x.skill&&!x.auto?`<input type="text" value="${esc(x.name)}" data-rtstep="${k}" aria-label="Step name" placeholder="e.g. Skip rope">`:x.auto?`<span><b>Coach’s picks</b> <span class="muted small">filled with what you’re working on</span></span>`:`<button class="nm" data-open="${esc(x.skill)}">${esc(stepName(x))}</button>`}
+    <label class="mins"><input type="number" min="1" max="120" value="${x.mins}" data-rtmins="${k}" aria-label="Minutes for ${esc(stepName(x))}"> min</label>
+    <span class="rtbtns"><button data-rtmove="${k}" data-dir="-1" aria-label="Move up"${k?'':' disabled'}>↑</button><button data-rtmove="${k}" data-dir="1" aria-label="Move down"${k<r.items.length-1?'':' disabled'}>↓</button><button data-rtdel="${k}" aria-label="Remove step">×</button></span>
+  </div>`).join('');
+  return `<div class="stack rtedit" id="rtEdit">
+    <div class="row" style="justify-content:space-between"><h3>Edit routine</h3><span class="muted small mono" id="rtTotal">${total} min</span></div>
+    <label class="field" for="rtName">Name<input type="text" id="rtName" value="${esc(r.name)}" data-rtname="1"></label>
+    <div class="ctx" style="grid-template-columns:1fr 1fr">
+      <label class="field" for="rtSpot">Spot<select id="rtSpot" data-rtfield="spot">${opt([['','Wherever I am'],...p.spots.map(k=>[k.id,k.name])],r.spot)}</select></label>
+      <label class="field" for="rtSkate">Skates<select id="rtSkate" data-rtfield="skate">${opt([['','Whatever I have on'],...p.skates.map(k=>[k.id,k.name]),['none','No skates (off-skate)']],r.skate)}</select></label>
+    </div>
+    <div class="rtlist">${rows||'<p class="muted small">No steps yet. Add some below.</p>'}</div>
+    <div class="row"><select data-rtadd="1" aria-label="Add an exercise"><option value="">Add an exercise…</option>${groups}</select>
+      <button class="btn sm" data-act="rtAddStep">Add your own step</button><button class="btn sm" data-act="rtAddAuto">Add coach’s picks</button></div>
+    <div class="row"><button class="btn sm primary" data-startroutine="${r.id}">${activeRoutine===r.id?'Restart':'Start now'}</button><button class="btn sm" data-act="rtDone">Done</button>
+      ${pendingDelete==='rt:'+r.id?`<button class="btn sm danger" data-act="rtDelYes">Delete routine</button><button class="btn sm ghost" data-delcancel="1">Keep</button>`:`<button class="btn sm ghost danger" data-act="rtDelAsk">Delete</button>`}</div>
   </div>`;
 }
 function spotSummary(skate,spot){
@@ -996,13 +1178,13 @@ function viewMap(){
   if(mapView==='list') return `<div class="stack">${head}${viewList()}</div>`;
   return `<div class="stack">${head}
     <div class="row" style="justify-content:space-between">
-      <div class="legend"><span><i style="border-color:var(--line);border-style:dashed"></i>Locked</span><span><i style="border-color:var(--accent)"></i>Ready to start</span>
+      <div class="legend"><span><i style="border-color:var(--line);border-style:dashed"></i>Recommended later</span><span><i style="border-color:var(--accent)"></i>Ready to start</span>
       <span><i style="border-color:var(--lv-learn);background:var(--lv-learn-bg)"></i>Learning</span><span><i style="border-color:var(--lv-dev);background:var(--lv-dev-bg)"></i>Developing</span>
       <span><i style="border-color:var(--lv-conf);background:var(--lv-conf-bg)"></i>Confident</span><span><i style="border-color:var(--lv-solid);background:var(--lv-solid-bg)"></i>Solid</span></div>
       <div class="row"><button class="btn sm" data-zoom="-1" aria-label="Zoom out">−</button><button class="btn sm" data-zoom="1" aria-label="Zoom in">+</button></div>
     </div>
     <div class="mapbox" id="mapbox"></div>
-    <p class="muted small">Left to right is progression: a skill unlocks once everything feeding into it reaches Developing (${UNLOCK}%). Faded skills belong to other styles${mapTheme?' or themes':''} but are needed here. Skills your current skates or spot can’t support are dimmed.</p>
+    <p class="muted small">Left to right is progression: a skill opens up once everything feeding into it reaches Developing (${UNLOCK}%), and once you’re comfortable with a skill, everything before it counts as done too. Dashed ones are only a recommendation: open one and try it anyway. Faded skills belong to other styles${mapTheme?' or themes':''} but are needed here. Skills your current skates or spot can’t support are dimmed.</p>
   </div>`;
 }
 function drawMap(){
@@ -1031,7 +1213,7 @@ function drawMap(){
   }));
   ids.forEach(id=>{
     const s=BYID[id],p=pos[id],c=conf(id),lv=levelOf(c),ul=unlocked(s);
-    const cls=['node',c>0?'l'+lv:ul?'ready':'locked'];
+    const cls=['node',c>0?'l'+lv:IMPLIED.has(id)?'l3':ul?'ready':'locked'];
     if(faded.has(id))cls.push('faded'); if(blocker(s,skate,spot)&&s.st!=='O')cls.push('ctxblock');
     if(rel&&!rel.has(id))cls.push('dim'); if(selected===id)cls.push('sel');
     const nm=(isFav(id)?'★ ':'')+s.n, name=nm.length>24?nm.slice(0,23)+'…':nm;
@@ -1050,11 +1232,13 @@ function viewList(){
   const {ids}=visibleSet(); const set=new Set(ids);
   return Object.entries(STYLES).map(([k,v])=>{
     const list=SKILLS.filter(s=>s.st===k&&set.has(s.id)); if(!list.length) return '';
-    return `<section class="panel"><h3 style="margin-bottom:4px">${esc(v.n)}</h3><div class="slist">${list.map(s=>{
+    const todo=list.filter(s=>!comfy(s.id)&&conf(s.id)<70).length;
+    const bulk=!todo?'':pendingBulk===k?`<span class="row"><button class="btn sm primary" data-bulk="${k}">Mark ${todo} as Confident</button><button class="btn sm ghost" data-bulkcancel="1">Cancel</button></span>`:`<button class="btn sm ghost" data-bulkask="${k}">I have all of these</button>`;
+    return `<section class="panel"><div class="row" style="justify-content:space-between;margin-bottom:4px"><h3>${esc(v.n)}</h3>${bulk}</div><div class="slist">${list.map(s=>{
       const lv=levelOf(conf(s.id));
-      return `<div class="srow">${star(s.id)}<button class="nm" data-open="${s.id}">${esc(s.n)}</button><span class="dots" title="Difficulty">${dots(s.d)}</span>
+      return `<div class="srow">${star(s.id)}<button class="nm" data-open="${s.id}">${esc(s.n)}${IMPLIED.has(s.id)?' <span class="muted small" title="Counted as known: you have a skill that builds on it">· have it</span>':''}</button><span class="dots" title="Difficulty">${dots(s.d)}</span>
       <select data-baseline="${s.id}" aria-label="Level for ${esc(s.n)}">${LEVELS.map((L,i)=>`<option value="${i}"${i===lv?' selected':''}>${L.n}</option>`).join('')}</select></div>`}).join('')}</div></section>`;
-  }).join('')+`<p class="muted small">Setting a level here records it as a starting point. Logging practice adjusts it from there.</p>`;
+  }).join('')+`<p class="muted small">Setting a level here records it as a starting point. Logging practice adjusts it from there. Anything you’re comfortable with, and everything it builds on, stays out of your sessions except as a warm-up.</p>`;
 }
 
 /* ----- Drawer ----- */
@@ -1073,7 +1257,7 @@ function renderDrawer(){
     <div class="stack" style="gap:8px">
       <div class="role off">${esc(STYLES[s.st].n)} · difficulty <span class="mono">${dots(s.d)}</span></div>
       <h2>${esc(s.n)}</h2>
-      <div class="row">${pill(s.id)}<button class="btn sm" data-fav="${s.id}" aria-pressed="${isFav(s.id)}"><span class="star-ico">${isFav(s.id)?'★':'☆'}</span> ${isFav(s.id)?'Priority':'Make it a priority'}</button>${info?`<span class="muted small">${info.sessions?info.sessions+' session'+(info.sessions===1?'':'s')+' · last '+ago(info.last):'Starting level set '+ago(info.last)}</span>`:''}</div>
+      <div class="row">${pill(s.id)}${!comfy(s.id)&&c<70&&s.st!=='O'?`<button class="btn sm" data-haveskill="${s.id}" title="Counts it as Confident, along with everything it builds on">I already have it</button>`:''}<button class="btn sm" data-fav="${s.id}" aria-pressed="${isFav(s.id)}"><span class="star-ico">${isFav(s.id)?'★':'☆'}</span> ${isFav(s.id)?'Priority':'Make it a priority'}</button>${info?`<span class="muted small">${info.sessions?info.sessions+' session'+(info.sessions===1?'':'s')+' · last '+ago(info.last):'Starting level set '+ago(info.last)}</span>`:''}</div>
       ${c>0?`<div class="meter"><i style="width:${c}%;background:var(--lv-${['new','learn','dev','conf','solid'][lv]})"></i></div>`:''}
     </div>
     <p>${esc(s.desc)}</p>
@@ -1081,7 +1265,10 @@ function renderDrawer(){
     ${illus(s)}
     <div><h3>Cues</h3><ul>${s.cues.map(q=>`<li>${esc(q)}</li>`).join('')}</ul></div>
     ${needs.length?`<p class="small"><b>Needs:</b> ${esc(needs.join(', '))}.${b?` <span style="color:var(--danger)">Not possible with today’s setup (${esc(b)}).</span>`:''}</p>`:''}
-    ${!b?(getPlan().items.some(it=>it.id===s.id)?`<p class="small muted">In today’s session.</p>`:`<div><button class="btn sm" data-addplan="${s.id}">Add to today’s session</button></div>`):''}
+    ${!unlocked(s)&&c===0?`<div class="soft"><p class="small"><b>Recommended first:</b> ${missing(s).map(r=>`<button class="link" data-open="${r}">${esc(BYID[r].n)}</button>`).join(', ')}. It’s a suggestion, not a gate: try it whenever you like.</p>
+      <div class="row">${!b&&!getPlan().items.some(it=>it.id===s.id)?`<button class="btn sm" data-addplan="${s.id}">Try it anyway today</button>`:''}<button class="btn sm ghost" data-havereq="${s.id}">I already have ${missing(s).length>1?'those':'that'}</button></div></div>`
+    :!b?(getPlan().items.some(it=>it.id===s.id)?`<p class="small muted">In today’s session.</p>`:`<div><button class="btn sm" data-addplan="${s.id}">Add to today’s session</button></div>`):''}
+    ${!unlocked(s)&&c===0&&!b&&getPlan().items.some(it=>it.id===s.id)?`<p class="small muted">In today’s session.</p>`:''}
     <div class="stack" style="gap:8px"><h3>Log practice</h3>
       <input type="text" id="logNote" placeholder="Note (optional): what clicked, what to fix">
       <div class="rate" style="margin:0">${[1,2,3,4,5].map(r=>`<button data-logskill="${s.id}" data-r="${r}" title="${RATING_HELP[r]}">${RATINGS[r]}</button>`).join('')}</div>
@@ -1239,6 +1426,30 @@ document.addEventListener('click',async e=>{
   if(d.addplan){addToPlan(d.addplan); selected=null; tab='today'; render(); toast(BYID[d.addplan].n+' added to today'); return}
   if(d.logskill){const note=(document.getElementById('logNote')||{}).value||''; await logRating(d.logskill,+d.r,note.trim()); render(); return}
   if(d.act==='shuffle'){reshuffle();return}
+  if(d.haveit){const i=+d.haveit, it=planCache.items[i]; if(!it) return; planCache.items.splice(i,1);
+    await markHave([it.id]); toast(`${BYID[it.id].n} counts as Confident now, and so does everything it builds on.`); return}
+  if(d.haveskill){await markHave([d.haveskill]); toast(`${BYID[d.haveskill].n} counts as Confident now, and so does everything it builds on.`); return}
+  if(d.havereq){const m=missing(BYID[d.havereq]); await markHave(m); toast(`${m.map(r=>BYID[r].n).join(' and ')} marked as Confident. ${BYID[d.havereq].n} is open.`); return}
+  if(d.bulkask){pendingBulk=d.bulkask;render();return}
+  if(d.bulkcancel){pendingBulk=null;render();return}
+  if(d.bulk){const {ids}=visibleSet(), set=new Set(ids), m=SKILLS.filter(s=>s.st===d.bulk&&set.has(s.id)&&!comfy(s.id)&&conf(s.id)<70).map(s=>s.id);
+    pendingBulk=null; await markHave(m); toast(`Marked ${m.length} ${STYLES[d.bulk].n} skills as Confident`); return}
+  if(d.startroutine){startRoutine(d.startroutine);return}
+  if(d.editroutine){editingRoutine=d.editroutine;selected=null;tab='today';render();const el=document.getElementById('rtEdit');if(el)el.scrollIntoView({block:'start',behavior:'smooth'});return}
+  if(d.act==='stopRoutine'){stopRoutine();return}
+  if(d.act==='newRoutine'){newRoutine({name:'New routine',items:[{auto:true,mins:20}]});return}
+  if(d.act==='saveRoutine'){newRoutine(routineFromPlan());toast('Saved as a routine. Rename it and tweak the steps below.');return}
+  if(d.act==='sampleRoutine'){sampleRoutines();return}
+  const er=editingRoutine&&routineBy(editingRoutine);
+  if(er){
+    if(d.act==='rtDone'){editingRoutine=null;render();return}
+    if(d.act==='rtAddStep'){er.items.push({name:'',mins:5});touchProfile();render();const ins=document.querySelectorAll('[data-rtstep]');if(ins.length)ins[ins.length-1].focus();return}
+    if(d.act==='rtAddAuto'){er.items.push({auto:true,mins:15});touchProfile();render();return}
+    if(d.rtmove){const k=+d.rtmove, j=k+(+d.dir); if(j<0||j>=er.items.length) return; [er.items[k],er.items[j]]=[er.items[j],er.items[k]]; touchProfile(); render(); return}
+    if(d.rtdel){er.items.splice(+d.rtdel,1);touchProfile();render();return}
+    if(d.act==='rtDelAsk'){pendingDelete='rt:'+er.id;render();return}
+    if(d.act==='rtDelYes'){state.profile.routines=routines().filter(r=>r.id!==er.id); if(activeRoutine===er.id){activeRoutine=null;planCache=null} editingRoutine=null; pendingDelete=null; touchProfile(); render(); toast('Routine deleted'); return}
+  }
   if(d.mapview){mapView=d.mapview;render();return}
   if(d.mapstyle){mapStyle=d.mapstyle;render();return}
   if(d.zoom){zoom=Math.min(1.6,Math.max(0.5,zoom+(+d.zoom)*0.15));drawMap();return}
@@ -1275,6 +1486,10 @@ document.addEventListener('keydown',e=>{
 document.addEventListener('change',async e=>{
   const t=e.target, d=t.dataset;
   if(d.addpick&&t.value){addToPlan(t.value);return}
+  const er=editingRoutine&&routineBy(editingRoutine);
+  if(er&&d.rtadd&&t.value){const s=BYID[t.value]; er.items.push({skill:s.id,mins:itemMins(s,s.st==='O'?'off':'work')}); touchProfile(); render(); return}
+  if(er&&d.rtmins!=null){const x=er.items[+d.rtmins]; if(x) t.value=x.mins; return}
+  if(er&&d.rtfield){t.value?er[d.rtfield]=t.value:delete er[d.rtfield]; touchProfile(); return}
   if(d.ctx){state.profile.ctx[d.ctx]=d.ctx==='minutes'?+t.value:t.value;saveProfile();render();return}
   if(d.baseline){await setBaseline(d.baseline,+t.value);toast(`${BYID[d.baseline].n}: ${LEVELS[+t.value].n}`);return}
   if(d.sk){const k=state.profile.skates.find(x=>x.id===d.sk);k[d.key]=d.key==='grind'?t.value==='1':t.value;touchProfile();render();return}
@@ -1284,7 +1499,7 @@ document.addEventListener('change',async e=>{
   if(t.id==='importFile'&&t.files[0]){
     try{const j=JSON.parse(await t.files[0].text()); if(!j.profile||!Array.isArray(j.logs)) throw 0;
       const have=new Set(state.logs.map(l=>l.id)); const add=j.logs.filter(l=>l&&l.id&&l.skill&&!have.has(l.id));
-      state.profile=Object.assign(defaultProfile(),j.profile);
+      state.profile=normProfile(j.profile);
       for(const [k,v] of Object.entries(j.photos||{})){if(typeof v==='string'&&v.startsWith('data:image/'))await savePhoto(k,v)}
       saveProfile();
       for(const l of add) await saveLog(l);
@@ -1296,6 +1511,11 @@ document.addEventListener('input',e=>{
   const d=e.target.dataset;
   if(d.skname){state.profile.skates.find(x=>x.id===d.skname).name=e.target.value;touchProfile()}
   if(d.spname){state.profile.spots.find(x=>x.id===d.spname).name=e.target.value;touchProfile()}
+  const er=editingRoutine&&routineBy(editingRoutine);
+  if(er&&d.rtname){er.name=e.target.value.slice(0,60)||'Routine';touchProfile()}
+  if(er&&d.rtstep!=null){const x=er.items[+d.rtstep]; if(x){x.name=e.target.value.slice(0,80);touchProfile()}}
+  // minutes save as you type; the total updates in place so a tap on Start right after still lands
+  if(er&&d.rtmins!=null){const x=er.items[+d.rtmins], v=Math.round(+e.target.value); if(x&&v>=1&&v<=120){x.mins=v;touchProfile();const tt=document.getElementById('rtTotal');if(tt)tt.textContent=routineMins(er)+' min'}}
 });
 
 render();
