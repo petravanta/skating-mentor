@@ -543,13 +543,57 @@ async function driveToken(){
   Drive.token=r.token; Drive.exp=r.exp;
   if(r.email&&r.email!==Drive.email){Drive.email=r.email; lsSet('sm.driveEmail',r.email)}
 }
+// Google asks busy apps to back off: 429, a 403 with a rate-limit reason, or a 5xx is tried again up to 4 times,
+// 1, 2, 4 s apart plus a random spread, or what Retry-After asks (general STANDARDS.md, "When Google Drive says no")
 async function dfetch(path,opt={}){
-  if(!driveLive()) throw {code:'expired'};
-  const r=await fetch(DAPI+path,{...opt,headers:{...(opt.headers||{}),Authorization:'Bearer '+Drive.token}});
-  if(r.status===401){Drive.token=null; Drive.exp=0; GoogleToken.forget(Drive.email); throw {code:'expired'}}
-  if(!r.ok) throw {code:'http',status:r.status};
-  return r;
+  for(let n=0;;n++){
+    if(!driveLive()) throw {code:'expired'};
+    let r; try{r=await fetch(DAPI+path,{...opt,headers:{...(opt.headers||{}),Authorization:'Bearer '+Drive.token}})}catch(e){throw {code:'offline'}}
+    if(r.status===401){Drive.token=null; Drive.exp=0; GoogleToken.forget(Drive.email); throw {code:'expired'}}
+    if(r.ok) return r;
+    let reason='', msg=''; try{const j=(await r.json()).error||{}; reason=((j.errors||[])[0]||{}).reason||j.status||''; msg=j.message||''}catch(e){}
+    const e={code:'http',status:r.status,reason,msg}, k=driveKind(e);
+    if(n<3&&(k==='busy'||k==='server')){
+      const ra=Number(r.headers.get('Retry-After')), ms=ra>0?Math.min(ra,60)*1000:(2**n)*1000+Math.random()*1000;
+      Drive.problem=driveExplain(e,ms); Drive.err=Drive.problem.text; showDriveStatus(); await new Promise(f=>setTimeout(f,ms)); continue;
+    }
+    throw e;
+  }
 }
+// What went wrong, in words a person can act on, ending with Google's status and reason. Drive.problem keeps the details:
+// {kind, text, status, reason, message, retrying, retryAt, at}, the same shape as general's shared/drive-store.js
+function driveKind(e){
+  if(!e||e.code==='expired'||e.type==='popup_closed'||e.error==='access_denied') return null;
+  if(e.code==='offline') return 'offline';
+  const s=e.status, r=e.reason||'';
+  if(/storageQuotaExceeded/.test(r)) return 'full';
+  if(s===429||/rateLimitExceeded|quotaExceeded|dailyLimitExceeded|RESOURCE_EXHAUSTED/i.test(r)) return 'busy';
+  if(s===403) return 'denied';
+  if(s===404) return 'missing';
+  if(s>=500) return 'server';
+  return 'http';
+}
+const DRIVE_TEXT={
+  offline:'Offline \u00b7 changes save to Drive when you\u2019re back online',
+  busy:'Google Drive is busy \u00b7 trying again by itself',
+  server:'Google Drive had a problem on its side \u00b7 trying again by itself',
+  full:'Your Google Drive is full \u00b7 free up space and the app saves again',
+  denied:'Google Drive didn\u2019t allow this \u00b7 disconnect and connect Google Drive again, and tick the Drive box',
+  missing:'Couldn\u2019t find this app\u2019s file in Google Drive \u00b7 trying again',
+  http:'Google Drive didn\u2019t accept the change \u00b7 trying again'};
+function driveExplain(e,retryIn){
+  const k=driveKind(e); if(!k) return null;
+  return {kind:k,status:e.status||0,reason:e.reason||'',message:e.msg||'',retrying:retryIn>0,retryAt:retryIn>0?new Date(Date.now()+retryIn):null,at:new Date(),
+    text:DRIVE_TEXT[k]+(e.status?` (${e.status}${e.reason?' '+e.reason:''})`:'')};
+}
+// A sync or save that failed syncs again by itself (reading Drive first, so nothing from another device is lost), 30 s, then 1, 2, 4, up to 5 minutes apart. Offline waits for 'online';
+// a full Drive or a refused permission waits for the person.
+function driveFailed(e){
+  const k=driveKind(e), again=k==='busy'||k==='server'||k==='missing'||k==='http';
+  if(again){Drive.retry=Math.min((Drive.retry||15000)*2,300000); clearTimeout(Drive.timer); Drive.timer=setTimeout(()=>driveSync(false),Drive.retry)}
+  Drive.problem=driveExplain(e,again?Drive.retry:0); Drive.err=Drive.problem?Drive.problem.text:null;
+}
+function driveOk(){Drive.problem=null; Drive.err=null; Drive.retry=0}
 // Files live in petravanta/Skating Mentor/ in the user's Drive, shared with the other apps (general STANDARDS.md, "Where it lives")
 const DRIVE_DIRS=['petravanta','Skating Mentor'], DFOLDER='application/vnd.google-apps.folder';
 const dq=v=>"'"+String(v).replace(/\\/g,'\\\\').replace(/'/g,"\\'")+"'";
@@ -586,8 +630,11 @@ async function driveFind(){
 async function driveRead(){const id=await driveFind(); return id?(await dfetch(`/drive/v3/files/${id}?alt=media`)).json():null}
 async function driveWrite(){
   const body=JSON.stringify({app:'skating-mentor',saved:new Date().toISOString(),profile:state.profile,logs:state.logs,photos:state.photos,deleted:state.deleted,sessions:state.sessions});
+  const up=id=>dfetch(`/upload/drive/v3/files/${id}?uploadType=media`,{method:'PATCH',headers:{'Content-Type':'application/json'},body});
+  // Once the file id is known, write straight to it; look for the file again only if Drive says it is gone
+  if(Drive.fileId){try{await up(Drive.fileId);return}catch(e){if(!(e.code==='http'&&e.status===404)) throw e; Drive.fileId=null}}
   const id=await driveFind();
-  if(id){await dfetch(`/upload/drive/v3/files/${id}?uploadType=media`,{method:'PATCH',headers:{'Content-Type':'application/json'},body});return}
+  if(id){await up(id);return}
   const b='sm'+uid6(), meta=JSON.stringify({name:DRIVE_FILE,mimeType:'application/json',parents:[await driveHome()]});
   const multi=`--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${meta}\r\n--${b}\r\nContent-Type: application/json\r\n\r\n${body}\r\n--${b}--`;
   const j=await (await dfetch('/upload/drive/v3/files?uploadType=multipart&fields=id',{method:'POST',headers:{'Content-Type':'multipart/related; boundary='+b},body:multi})).json();
@@ -623,10 +670,10 @@ async function driveSync(interactive){
     Drive.busy=true; Drive.err=null; showDriveStatus();
     const changed=mergeRemote(await driveRead());
     await driveWrite();
-    Drive.on=true; lsSet('sm.driveOn',true); Drive.last=new Date();
+    Drive.on=true; lsSet('sm.driveOn',true); Drive.last=new Date(); driveOk();
     if(changed){planCache=null; render()}
   }catch(e){
-    if(e&&e.code!=='expired') Drive.err=(e.type==='popup_closed'||e.error==='access_denied')?null:'Couldn\u2019t reach Google Drive';
+    driveFailed(e);
     if(interactive&&Drive.err) toast('Couldn\u2019t connect to Google Drive. Your progress is still saved in this browser.');
   }finally{Drive.busy=false; showDriveStatus(); if(tab==='settings') render()}
 }
@@ -635,15 +682,16 @@ function driveSoon(){
   clearTimeout(Drive.timer);
   Drive.timer=setTimeout(async()=>{
     if(!driveLive()){showDriveStatus();return}
-    try{Drive.busy=true;showDriveStatus();await driveWrite();Drive.last=new Date();Drive.err=null}
-    catch(e){if(e.code!=='expired')Drive.err='Couldn\u2019t reach Google Drive'}
+    try{Drive.busy=true;showDriveStatus();await driveWrite();Drive.last=new Date();driveOk()}
+    catch(e){driveFailed(e)}
     finally{Drive.busy=false;showDriveStatus()}
   },3000);
 }
+window.addEventListener('online',()=>driveSync(false)); // offline problems wait for the connection to come back
 function driveDisconnect(){
   // Forget the sign-in on this browser only: Google's permission stays for the other apps and devices
   GoogleToken.forget(Drive.email);
-  Drive.token=null; Drive.exp=0; Drive.email=''; Drive.on=false; Drive.err=null; lsSet('sm.driveOn',false); lsSet('sm.driveEmail',null); Drive.dir=null; lsSet('sm.driveDir',null); lsSet('sm.driveMoved',null); setSaveState('Saved in this browser'); render();
+  Drive.token=null; Drive.exp=0; Drive.email=''; Drive.on=false; Drive.err=null; Drive.problem=null; lsSet('sm.driveOn',false); lsSet('sm.driveEmail',null); Drive.dir=null; lsSet('sm.driveDir',null); lsSet('sm.driveMoved',null); setSaveState('Saved in this browser'); render();
 }
 function drivePanel(){
   if(!driveConfigured()) return `<p class="small muted">Google Drive sync isn\u2019t set up for this copy of the app yet.</p>`;
