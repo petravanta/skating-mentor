@@ -664,16 +664,54 @@
     "cues": ["Count the 8-count out loud", "One move per phrase", "Stay relaxed in the upper body"]
   },
   {
+    "id": "heeltoe-still",
+    "name": "Stationary heel-toe",
+    "style": "dance",
+    "difficulty": 2,
+    "requires": ["stance"],
+    "description": "Standing still, put one skate ahead on its back wheel with the toe up and the other behind on its front wheel with the heel up, and hold the balance. The stationary start of heel-toe rolls and manuals.",
+    "illustrations": ["heeltoe-still.svg"],
+    "cues": [
+      "Front skate on its heel wheel, back skate on its toe wheel",
+      "Hips centred between the feet, knees soft",
+      "Hold for five, then swap feet"
+    ],
+    "steps": [
+      "Start next to a wall or rail. Stand in a split stance with one skate about a skate-length ahead of the other, both pointing forward.",
+      "Lift the toe of the front skate so it rests on its back wheel, and the heel of the back skate so it rests on its front wheel.",
+      "Keep the hips between the feet, not over either one, knees soft, arms out front and back.",
+      "Hold for a slow count of five, set the skates down, and swap which foot is in front. Build up to 20 seconds each way, then let go of the wall."
+    ],
+    "why": "It puts the heel manual and the toe roll into one shape you can hold without speed. The front ankle learns the back-wheel balance point and the back ankle the front-wheel one, and once it is steady standing still, the heel-toe roll is the same shape with a push.",
+    "mistakes": [
+      "All the weight on one foot, so the other wheel lifts off. Share it about evenly",
+      "Feet too close together: about a skate-length apart is the stable spot",
+      "Leaning the upper body back to keep the front toe up",
+      "Only practising one lead"
+    ]
+  },
+  {
     "id": "heeltoe",
     "name": "Heel-toe roll",
     "style": "dance",
     "difficulty": 2,
-    "requires": ["glide1"],
+    "requires": ["glide1", "heeltoe-still"],
     "description": "Roll with one skate on its heel and the other on its toe.",
+    "illustrations": ["heeltoe.svg"],
     "cues": [
       "Stagger the feet a skate-length apart",
       "Hold the angle steady",
       "Practise both leads"
+    ],
+    "steps": [
+      "Roll forward at walking pace on smooth, flat ground.",
+      "Make the stationary heel-toe shape while you roll: front skate on its back wheel, back skate on its front wheel.",
+      "Hold it for a count of three, set the skates down, push once and go again.",
+      "Build up to a whole line, then practise with the other foot in front."
+    ],
+    "mistakes": [
+      "Going too fast before the shape is steady",
+      "Looking down at the skates instead of where you are going"
     ]
   },
   {
@@ -851,7 +889,25 @@
     "requires": ["stance"],
     "needs": [["wall"]],
     "description": "Standing still and holding a wall or rail, rock back onto the back wheels of both skates and find the balance point where the fronts stay up.",
-    "cues": ["Hips back, chest over the knees", "Lift the toes, don't lean the shoulders back", "Hold for a slow count of five, then let go with one hand"]
+    "illustrations": ["manual-wall.svg"],
+    "cues": [
+      "Hips back, chest over the knees",
+      "Lift the toes, don't lean the shoulders back",
+      "Hold for a slow count of five, then let go with one hand"
+    ],
+    "steps": [
+      "Face or stand side-on to a wall, rail or fence on flat ground, one or both hands on it. Skates side by side, hip-width.",
+      "Bend the knees and push the hips back as if starting to sit, keeping the chest over the knees.",
+      "Lift the toes inside the boots, the toe-lift move, so the fronts of the skates rise and you rock onto the back wheels.",
+      "Find the point where the fronts stay up with almost no effort. Hold for a slow count of five, set them down, and repeat.",
+      "When five counts is easy with two hands, use one, then hover the hand just off the wall."
+    ],
+    "why": "A heel manual's balance point is small and sits behind the ankle. Finding it standing still, with the wall as a safety net, means you already know where it is when you have to find it rolling.",
+    "mistakes": [
+      "Leaning the shoulders back to lift the toes, which tips you over backwards. Hips back, chest forward",
+      "Straight legs: soft knees let you correct",
+      "Lifting too high, past the balance point, then grabbing the wall"
+    ]
   },
   {
     "id": "manual-roll",
@@ -882,7 +938,12 @@
     "requires": ["manual-roll"],
     "smoothGround": true,
     "description": "The front-wheel manual: roll on the front wheels of both skates (on quads, the front wheels just behind the toe stops) with the heels up.",
-    "cues": ["Weight forward over the balls of the feet", "Heels up, knees bent", "Short holds first: the fronts stop you faster than the backs"]
+    "illustrations": ["toe-roll.svg"],
+    "cues": [
+      "Weight forward over the balls of the feet",
+      "Heels up, knees bent",
+      "Short holds first: the fronts stop you faster than the backs"
+    ]
   },
   {
     "id": "onefoot",
@@ -956,7 +1017,23 @@
     "supports": ["glide1", "edges", "tstop"],
     "description": "Stand on one leg for 30 seconds, then with eyes closed.",
     "illustrations": ["balance.svg"],
-    "cues": ["Soft knee, hip level", "Eyes closed is the progression", "Both sides"]
+    "cues": [
+      "Soft knee, hip level",
+      "Eyes closed is the progression",
+      "Both sides"
+    ],
+    "steps": [
+      "Stand near a wall or chair in socks or flat shoes. Shift onto one foot and lift the other just off the floor, knee bent.",
+      "Keep a soft knee on the standing leg and the hips level. Look at a point straight ahead.",
+      "Hold 30 seconds, then switch. Two rounds each side.",
+      "Progress: eyes closed, then standing on a cushion, then small knee bends while you balance."
+    ],
+    "why": "Every glide, stop and turn on skates happens on one foot. Training the small muscles round the ankle and hip to make quick corrections off skates means less wobble when you lift a skate.",
+    "mistakes": [
+      "Locking the standing knee",
+      "Letting the free hip drop, or hitching it up",
+      "Watching your feet instead of a point ahead"
+    ]
   },
   {
     "id": "calf",
@@ -970,6 +1047,17 @@
       "3 × 15 raises, slow lower",
       "Knee-to-wall stretch, 10 each side",
       "Ankle circles"
+    ],
+    "steps": [
+      "Calf raises: stand on the edge of a step with the heels hanging off, holding a rail. Rise onto the balls of the feet in one second, lower for three until the heels dip below the step.",
+      "Knee-to-wall: face a wall in a split stance with the front toes a hand's width from it. Keep the heel down and bend the knee to touch the wall. Ten slow touches each side, moving the foot back as it gets easy.",
+      "Ankle circles: ten each way, each foot."
+    ],
+    "why": "Skating asks the ankle to bend forward a long way inside a stiff boot. Strong calves push you onto the toe wheels and back, and a flexible ankle lets the knee come forward over the skate instead of the heel lifting.",
+    "mistakes": [
+      "Bouncing at the bottom of the raise",
+      "Letting the heel lift off the floor in the knee-to-wall stretch",
+      "Rolling onto the outside of the foot"
     ]
   },
   {
@@ -1064,9 +1152,26 @@
     "style": "off-skate",
     "difficulty": 2,
     "requires": ["balance"],
-    "supports": ["glide1", "frontside", "soul", "heeltoe", "manual-roll", "toe-roll"],
+    "supports": ["glide1", "frontside", "soul", "heeltoe-still", "heeltoe", "manual-wall", "manual-roll", "toe-roll"],
     "description": "Balance board or cushion: two-foot then one-foot holds.",
-    "cues": ["Near a wall at first", "Small squats while balanced", "30-second sets"]
+    "illustrations": ["bosu.svg"],
+    "cues": [
+      "Near a wall at first",
+      "Small squats while balanced",
+      "30-second sets"
+    ],
+    "steps": [
+      "Put the board or a firm cushion next to a wall or counter you can grab.",
+      "Step on with both feet hip-width apart, centred over the pivot. Bend the knees a little and find the point where neither edge touches.",
+      "Hold 30 seconds. Then do small squats while keeping it level.",
+      "When two feet is easy, try one foot. Then turn the board to rock front to back, which copies the heel and toe balance of a manual."
+    ],
+    "why": "A wobbling board does what a skate does under you: it keeps asking for small ankle corrections. Rocking front to back is the closest off-skate copy of finding a manual's balance point.",
+    "mistakes": [
+      "Stiff knees: bend them, they are your shock absorbers",
+      "Correcting with the arms and shoulders instead of the ankles",
+      "Going without a wall nearby the first few times"
+    ]
   },
   {
     "id": "spinsock",
@@ -1188,8 +1293,27 @@
     "style": "off-skate",
     "difficulty": 1,
     "requires": [],
-    "supports": ["heeltoe", "manual-wall", "manual-roll", "heelwheel", "toe-roll", "curb-manual"],
+    "supports": ["heeltoe-still", "heeltoe", "manual-wall", "manual-roll", "heelwheel", "toe-roll", "curb-manual", "heelstop"],
     "description": "Back against a wall with the heels a foot away, lift the toes as high as they go and lower slowly, then stand on your heels with the toes up and hold. Builds the shins and the balance point a manual needs.",
-    "cues": ["3 × 15 toe lifts, slow on the way down", "Heel stand: 3 × 20 seconds, hands free if you can", "Then the same holds with eyes closed"]
+    "illustrations": ["toe-lift.svg", "heel-stand.svg"],
+    "cues": [
+      "Toe lifts: 3 × 15, two seconds on the way down",
+      "Heel stand: 3 × 20 seconds, hands free if you can",
+      "Eyes closed: the same holds once the heel stand is steady"
+    ],
+    "steps": [
+      "Stand with your back and bum against a wall and walk your heels about a foot (30 cm) out from it. Legs straight but not locked.",
+      "Keep the heels down and pull the toes and the balls of the feet up toward your shins as far as they go. Pause for a beat at the top.",
+      "Lower over two seconds until the soles just touch, then go again. 15 reps, a short rest, three sets. The front of the shins should burn by the end.",
+      "Heel stand: step away from the wall, feet hip-width. Push the hips back a touch and lift the toes so only the heels touch the floor. Arms forward. Hold 20 seconds.",
+      "When that is steady, close your eyes. Later, try one heel at a time with the other foot just off the floor."
+    ],
+    "why": "Every heel manual, heel-toe and heel-brake stop rests on the muscle at the front of the shin, which most people never train. Toe lifts make it strong enough to hold the toes up for more than a second, and the heel stand teaches you where the balance point sits behind the ankle, so on skates you find it by feel instead of falling past it.",
+    "mistakes": [
+      "Letting the hips slide off the wall, so the thighs do the work instead of the shins",
+      "Dropping the toes fast: the slow way down is where the strength comes from",
+      "Leaning the shoulders back on the heel stand. Push the hips back and keep the chest forward, as you would on skates",
+      "Going to eyes closed before 20 seconds with eyes open feels easy"
+    ]
   }
 ]

@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="illu" viewBox="0 0 240 180" role="img" aria-label="Toe roll: both skates on their front wheels, heels up, weight over the balls of the feet">
+<title>Toe roll: both skates on their front wheels, heels up, weight over the balls of the feet</title>
+<style>
+.illu .il-fig{fill:none;stroke:currentColor;stroke-width:6;stroke-linecap:round;stroke-linejoin:round}
+.illu .il-far{opacity:.4}
+.illu .il-head{fill:currentColor}
+.illu .il-floor{stroke:currentColor;stroke-width:1.5;opacity:.3}
+.illu .il-wall{stroke:currentColor;stroke-width:3;opacity:.3}
+.illu .il-boot{fill:none;stroke:currentColor;stroke-width:3;stroke-linejoin:round}
+.illu .il-wheel{fill:currentColor}
+.illu .il-prop{fill:none;stroke:currentColor;stroke-width:2;stroke-dasharray:3 3;opacity:.7}
+.illu .il-hl{fill:var(--accent,#c2306f);opacity:.28}
+.illu .il-acc{fill:none;stroke:var(--accent,#c2306f);stroke-width:2.5;stroke-linecap:round}
+.illu .il-dash{stroke-dasharray:5 5}
+.illu .il-pad{fill:var(--accent,#c2306f)}
+.illu .il-lbl{fill:var(--accent,#c2306f);font:600 11px system-ui,-apple-system,sans-serif}
+.illu .il-top{fill:none;stroke:currentColor;stroke-width:3}
+.illu .il-wtop{fill:currentColor;opacity:.55}
+</style>
+<defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--accent,#c2306f)"/></marker></defs>
+<line class="il-floor" x1="10" y1="164" x2="230" y2="164"/>
+<path class="il-boot il-far" d="M91.5,125.6 L85.6,140.4 L114.3,152.0 L116.5,146.5 L101.4,136.0 L102.5,127.8Z"/>
+<line class="il-boot il-far" x1="85.9" y1="144.9" x2="110.9" y2="155.0"/>
+<circle class="il-wheel il-far" cx="85.0" cy="149.9" r="4"/>
+<circle class="il-wheel il-far" cx="93.3" cy="153.3" r="4"/>
+<circle class="il-wheel il-far" cx="101.7" cy="156.6" r="4"/>
+<circle class="il-wheel il-far" cx="110.0" cy="160.0" r="4"/>
+<polyline class="il-fig il-far" points="112.0,84.0 133.9,119.8 96.1,138.2"/>
+<polyline class="il-fig il-far" points="128.1,34.5 115.9,59.8 90.0,62.0"/>
+<polyline class="il-fig" points="112.0,84.0 128.1,34.5"/>
+<path class="il-boot" d="M105.5,125.6 L99.6,140.4 L128.3,152.0 L130.5,146.5 L115.4,136.0 L116.5,127.8Z"/>
+<line class="il-boot" x1="99.9" y1="144.9" x2="124.9" y2="155.0"/>
+<circle class="il-wheel" cx="99.0" cy="149.9" r="4"/>
+<circle class="il-wheel" cx="107.3" cy="153.3" r="4"/>
+<circle class="il-wheel" cx="115.7" cy="156.6" r="4"/>
+<circle class="il-wheel" cx="124.0" cy="160.0" r="4"/>
+<polyline class="il-fig" points="112.0,84.0 143.1,112.2 110.1,138.2"/>
+<polyline class="il-fig" points="128.1,34.5 148.4,53.8 172.0,76.0"/>
+<circle class="il-head" cx="132.7" cy="20.3" r="10"/>
+<ellipse class="il-hl" cx="130.1" cy="160.0" rx="10" ry="6" transform="rotate(0 130.1 160.0)"/>
+<line class="il-acc" x1="20.0" y1="120.0" x2="56.0" y2="120.0" marker-end="url(#ah)"/>
+<text class="il-lbl" x="20" y="110" text-anchor="start">roll</text>
+<text class="il-lbl" x="14" y="26" text-anchor="start">weight over the</text><text class="il-lbl" x="14" y="39" text-anchor="start">balls of the feet</text>
+<text class="il-lbl" x="200" y="150" text-anchor="middle">front wheels</text>
+<text class="il-lbl" x="236" y="66" text-anchor="end">heels up</text>
+</svg>

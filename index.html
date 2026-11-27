@@ -131,7 +131,7 @@ textarea{resize:vertical}
 .item.done{background:var(--sunk)}.item.done .name{text-decoration:line-through;text-decoration-color:var(--muted)}
 .item.done .why,.item.done ul,.item.done .illus{display:none}
 .addpick{max-width:420px}
-@media (max-width:560px){.item{grid-template-columns:minmax(0,1fr) auto}.item .slot{grid-row:auto;grid-column:1/span 2;text-align:left;width:auto;display:flex;gap:6px;align-items:baseline}.item .slot b{display:inline;font-size:14px}.item .role{grid-column:1;grid-row:2}.item .lvl{grid-column:2;grid-row:2}.item>.name,.item>.why,.item>ul,.item>.illus,.rate{grid-column:1/-1!important}}
+@media (max-width:560px){.item{grid-template-columns:minmax(0,1fr) auto}.item .slot{grid-row:auto;grid-column:1/span 2;text-align:left;width:auto;display:flex;gap:6px;align-items:baseline}.item .slot b{display:inline;font-size:14px}.item .role{grid-column:1;grid-row:2}.item .lvl{grid-column:2;grid-row:2}.item>.name,.item>.why,.item>.howlink,.item>ul,.item>.illus,.rate{grid-column:1/-1!important}}
 /* level pill */
 .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:700;white-space:nowrap;background:var(--sunk);color:var(--muted)}
 .pill .pct{font-family:var(--f-mono);font-weight:500}
@@ -194,6 +194,14 @@ textarea{resize:vertical}
 .drawer h2{padding-right:40px}
 .drawer ul{margin:0;padding-left:18px}
 .linklist{display:flex;flex-direction:column;gap:6px}
+.howto ol,.howto ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}.howto p{margin:0}
+.fits{display:flex;flex-direction:column;gap:0}
+.fitgrp{border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.fitgrp .fitlbl{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.fitgrp .fitlbl span{text-transform:none;letter-spacing:0;font-weight:500}
+.fitme{align-self:center;display:flex;flex-direction:column;align-items:center;color:var(--accent);font-size:13px;font-weight:700;line-height:1.1;padding:4px 0}
+.fitme b{color:var(--ink);background:var(--sunk);border-radius:999px;padding:4px 12px;margin:2px 0}
+.fitside{margin-top:10px}
 .linklist button{background:none;border:0;padding:0;display:flex;justify-content:space-between;gap:8px;align-items:center;text-align:left;color:var(--ink);font-weight:600;width:100%}
 .linklist button:hover span:first-child{color:var(--accent)}
 .meter{height:6px;border-radius:3px;background:var(--sunk);overflow:hidden}
@@ -296,7 +304,8 @@ const EQ={inline:'inline skates',quad:'quad skates',heel:'a heel brake',toe:'toe
 // Skills come from data/skills.json; the readable field names there map onto the short ones the app uses
 const STYLE_ID={foundations:'F',cruising:'C',park:'P',street:'S',dance:'D',slalom:'L','off-skate':'O'};
 const SKILLS=CATALOG.skills.map(s=>({id:s.id,st:STYLE_ID[s.style],n:s.name,d:s.difficulty,req:s.requires||[],sup:s.supports,eq:s.skates,
-  need:s.needs&&s.needs.map(o=>o.join('|')),surf:s.surfaces,smooth:s.smoothGround?1:undefined,desc:s.description,cues:s.cues||[],illu:s.illustrations||[]}));
+  need:s.needs&&s.needs.map(o=>o.join('|')),surf:s.surfaces,smooth:s.smoothGround?1:undefined,desc:s.description,cues:s.cues||[],illu:s.illustrations||[],
+  steps:s.steps||[],why:s.why||'',mis:s.mistakes||[]}));
 const BYID=Object.fromEntries(SKILLS.map(s=>[s.id,s]));
 // Drawings are inlined so they pick up the theme colours. They come from our own repo, but strip anything active anyway.
 const ILLU={};
@@ -1070,6 +1079,7 @@ function viewToday(){
       <button class="name" data-open="${s.id}">${esc(s.n)}</button>
       ${it.why?`<p class="why" style="grid-column:2/span 2">${esc(it.why)}</p>`:''}
       <ul style="grid-column:2/span 2">${s.cues.slice(0,s.st==='O'?s.cues.length:2).map(q=>`<li>${esc(q)}</li>`).join('')}</ul>
+      ${s.steps.length||s.why?`<p class="howlink small" style="grid-column:2/span 2;margin:0"><button class="link" data-open="${s.id}">How to do it${s.why?', why it helps':''}${s.mis.length?' and common mistakes':''}</button></p>`:''}
       ${illus(s,'card')}
       <div class="rate">${done&&done.r?`<span class="logged">✓ Done · ${RATINGS[done.r]}</span> <button data-undo="${i}">Undo</button>`:
         `${done?`<span class="logged">✓ Done</span> <button data-undo="${i}">Undo</button> <span class="lbl">Rate it?</span>`:`<button class="mark" data-markdone="${i}">✓ Done</button> <span class="lbl">or how did it go?</span>`}${[1,2,3,4,5].map(r=>`<button data-rate="${r}" data-item="${i}" title="${RATING_HELP[r]}">${RATINGS[r]}</button>`).join('')}${canHave?`<button class="have" data-haveit="${i}" title="Counts it as Confident, along with everything it builds on, and swaps in something else">Already have it</button>`:''}`}</div>
@@ -1264,6 +1274,10 @@ function renderDrawer(){
     ${(THEMES_OF[s.id]||[]).length?`<p class="small muted">Themes: ${THEMES_OF[s.id].map(id=>`<button class="link" data-themeview="${id}">${esc(THEME_BY[id].n)}</button>`).join(', ')}</p>`:''}
     ${illus(s)}
     <div><h3>Cues</h3><ul>${s.cues.map(q=>`<li>${esc(q)}</li>`).join('')}</ul></div>
+    ${s.steps.length?`<div class="howto stack" style="gap:6px"><h3>How to do it</h3><ol>${s.steps.map(q=>`<li>${esc(q)}</li>`).join('')}</ol></div>`:''}
+    ${s.why?`<div class="howto stack" style="gap:6px"><h3>Why it helps</h3><p>${esc(s.why)}</p></div>`:''}
+    ${s.mis.length?`<div class="howto stack" style="gap:6px"><h3>Common mistakes</h3><ul>${s.mis.map(q=>`<li>${esc(q)}</li>`).join('')}</ul></div>`:''}
+    ${fits(s,link,kids,sup)}
     ${needs.length?`<p class="small"><b>Needs:</b> ${esc(needs.join(', '))}.${b?` <span style="color:var(--danger)">Not possible with today’s setup (${esc(b)}).</span>`:''}</p>`:''}
     ${!unlocked(s)&&c===0?`<div class="soft"><p class="small"><b>Recommended first:</b> ${missing(s).map(r=>`<button class="link" data-open="${r}">${esc(BYID[r].n)}</button>`).join(', ')}. It’s a suggestion, not a gate: try it whenever you like.</p>
       <div class="row">${!b&&!getPlan().items.some(it=>it.id===s.id)?`<button class="btn sm" data-addplan="${s.id}">Try it anyway today</button>`:''}<button class="btn sm ghost" data-havereq="${s.id}">I already have ${missing(s).length>1?'those':'that'}</button></div></div>`
@@ -1274,12 +1288,19 @@ function renderDrawer(){
       <div class="rate" style="margin:0">${[1,2,3,4,5].map(r=>`<button data-logskill="${s.id}" data-r="${r}" title="${RATING_HELP[r]}">${RATINGS[r]}</button>`).join('')}</div>
       <label class="field" for="baseSel" style="margin-top:6px">Or set level directly<select id="baseSel" data-baseline="${s.id}">${LEVELS.map((L,i)=>`<option value="${i}"${i===lv?' selected':''}>${L.n}</option>`).join('')}</select></label>
     </div>
-    ${s.req.length?`<div class="stack" style="gap:8px"><h3>Builds on</h3><div class="linklist">${s.req.map(link).join('')}</div></div>`:''}
-    ${kids.length?`<div class="stack" style="gap:8px"><h3>Opens up</h3><div class="linklist">${kids.map(link).join('')}</div></div>`:''}
-    ${s.sup?`<div class="stack" style="gap:8px"><h3>Helps with</h3><div class="linklist">${s.sup.map(link).join('')}</div></div>`:''}
-    ${sup.length?`<div class="stack" style="gap:8px"><h3>Off-skate training</h3><div class="linklist">${sup.map(link).join('')}</div></div>`:''}
     ${logs.length?`<div class="stack" style="gap:8px"><h3>Recent</h3><div class="hist">${logs.map(l=>`<div><span>${l.base!=null?'Set to '+LEVELS[BASELINE_CONF.indexOf(l.base)]?.n:RATINGS[l.r]}${l.note?' · <span class="muted">'+esc(l.note)+'</span>':''}</span><span class="muted mono">${fmtDate(l.ts)}</span></div>`).join('')}</div></div>`:''}
   </aside>`;
+}
+// Where a skill sits in the graph: what it builds up from, then what it leads to, each tappable
+function fits(s,link,kids,sup){
+  const off=s.st==='O', next=off?(s.sup||[]):kids;
+  const grp=(lbl,hint,ids,empty)=>`<div class="fitgrp"><div class="fitlbl">${lbl}${hint?` <span>· ${hint}</span>`:''}</div>${ids.length?`<div class="linklist">${ids.map(link).join('')}</div>`:`<p class="small muted" style="margin:0">${empty}</p>`}</div>`;
+  return `<div class="stack" style="gap:8px"><h3>Where it fits</h3><div class="fits">
+    ${off?'':grp('Builds up from',s.req.length?'learn these first':'',s.req,'Nothing: it’s a starting point.')}
+    ${off?'':`<div class="fitme" aria-hidden="true">↓<b>${esc(s.n)}</b>↓</div>`}
+    ${grp(off?'Helps with':'Leads to',next.length?(off?'on-skate skills this drill trains for':'skills that build on this one'):'',next,off?'General fitness for skating.':'Nothing yet: it’s the end of this line.')}
+    ${sup.length?`<div class="fitside">${grp('Off-skate training','drills that help with it',sup,'')}</div>`:''}
+  </div></div>`;
 }
 function fmtDate(ts){return new Date(ts).toLocaleDateString(undefined,{month:'short',day:'numeric'})}
 

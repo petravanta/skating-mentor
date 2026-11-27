@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="illu" viewBox="0 0 240 180" role="img" aria-label="Back-wheel balance at a wall: both skates on their back wheels, hand on the wall">
+<title>Back-wheel balance at a wall: both skates on their back wheels, hand on the wall</title>
+<style>
+.illu .il-fig{fill:none;stroke:currentColor;stroke-width:6;stroke-linecap:round;stroke-linejoin:round}
+.illu .il-far{opacity:.4}
+.illu .il-head{fill:currentColor}
+.illu .il-floor{stroke:currentColor;stroke-width:1.5;opacity:.3}
+.illu .il-wall{stroke:currentColor;stroke-width:3;opacity:.3}
+.illu .il-boot{fill:none;stroke:currentColor;stroke-width:3;stroke-linejoin:round}
+.illu .il-wheel{fill:currentColor}
+.illu .il-prop{fill:none;stroke:currentColor;stroke-width:2;stroke-dasharray:3 3;opacity:.7}
+.illu .il-hl{fill:var(--accent,#c2306f);opacity:.28}
+.illu .il-acc{fill:none;stroke:var(--accent,#c2306f);stroke-width:2.5;stroke-linecap:round}
+.illu .il-dash{stroke-dasharray:5 5}
+.illu .il-pad{fill:var(--accent,#c2306f)}
+.illu .il-lbl{fill:var(--accent,#c2306f);font:600 11px system-ui,-apple-system,sans-serif}
+.illu .il-top{fill:none;stroke:currentColor;stroke-width:3}
+.illu .il-wtop{fill:currentColor;opacity:.55}
+</style>
+<defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--accent,#c2306f)"/></marker></defs>
+<line class="il-floor" x1="10" y1="164" x2="230" y2="164"/>
+<line class="il-wall" x1="176" y1="16" x2="176" y2="164"/>
+<path class="il-boot il-far" d="M92.6,137.5 L98.1,152.6 L127.2,142.0 L125.2,136.3 L106.9,138.7 L102.3,131.9Z"/>
+<line class="il-boot il-far" x1="101.4" y1="155.6" x2="126.7" y2="146.4"/>
+<circle class="il-wheel il-far" cx="104.0" cy="160.0" r="4"/>
+<circle class="il-wheel il-far" cx="112.5" cy="156.9" r="4"/>
+<circle class="il-wheel il-far" cx="120.9" cy="153.8" r="4"/>
+<circle class="il-wheel il-far" cx="129.4" cy="150.8" r="4"/>
+<polyline class="il-fig il-far" points="88.0,98.0 128.4,109.3 104.5,143.9"/>
+<polyline class="il-fig il-far" points="105.8,49.1 130.3,62.6 162.0,80.0"/>
+<polyline class="il-fig" points="88.0,98.0 105.8,49.1"/>
+<path class="il-boot" d="M104.6,137.5 L110.1,152.6 L139.2,142.0 L137.2,136.3 L118.9,138.7 L114.3,131.9Z"/>
+<line class="il-boot" x1="113.4" y1="155.6" x2="138.7" y2="146.4"/>
+<circle class="il-wheel" cx="116.0" cy="160.0" r="4"/>
+<circle class="il-wheel" cx="124.5" cy="156.9" r="4"/>
+<circle class="il-wheel" cx="132.9" cy="153.8" r="4"/>
+<circle class="il-wheel" cx="141.4" cy="150.8" r="4"/>
+<polyline class="il-fig" points="88.0,98.0 129.6,103.9 116.5,143.9"/>
+<polyline class="il-fig" points="105.8,49.1 132.4,57.8 170.0,70.0"/>
+<circle class="il-head" cx="110.9" cy="35.0" r="10"/>
+<ellipse class="il-hl" cx="108.5" cy="160.0" rx="10" ry="6" transform="rotate(0 108.5 160.0)"/>
+<path class="il-acc" d="M150.0 140.0Q142.4 129.6 148.0 118.0" marker-end="url(#ah)"/>
+<text class="il-lbl" x="14" y="26" text-anchor="start">hips back,</text><text class="il-lbl" x="14" y="39" text-anchor="start">chest over</text><text class="il-lbl" x="14" y="52" text-anchor="start">the knees</text>
+<text class="il-lbl" x="14" y="140" text-anchor="start">back wheels</text><text class="il-lbl" x="14" y="153" text-anchor="start">down, toes up</text>
+</svg>

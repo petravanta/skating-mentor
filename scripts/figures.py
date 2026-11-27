@@ -260,4 +260,75 @@ F.body(hip, sh, (58, FLOOR - 10))
 save('stretch-5', 'Figure-4 stretch on your back: ankle crossed over the other knee, thigh pulled toward the chest', [floor(), *F.svg(),
      hl(hip, 16, 10), arrow((182, 90), (160, 80), 0.3), label(14, 26, 'ankle over the', 'other knee'), label(172, 70, 'pull in')])
 
+# ---------------------------------------------------------------- heel and toe balance (manuals)
+def tilted_ankle(x, toe, wheel):
+    """Ankle position for a side skate tilted by toe degrees that rests on one wheel: wheel=-6 (back) or 21 (front)."""
+    r = math.radians(toe); return (x - math.cos(r) * wheel + math.sin(r) * 15, FLOOR - 4 - (math.sin(r) * wheel + math.cos(r) * 15))
+
+F = Fig()
+hip = (70, 86); sh = at(hip, -90 - 4, 52)                 # leaning back on the wall
+up, flat = (104, SHOE_ANKLE), (104, SHOE_ANKLE)
+F.leg(hip, flat, (1, 0), 0, True)                           # faded: foot flat (the start)
+k = F.leg(hip, up, (1, 0), -38)                             # solid: toes lifted, heel stays down
+F.arm(sh, (74, 128), (1, 0)); F.arm(sh, (70, 128), (1, 0), True)
+F.body(hip, sh, head_from(hip, sh))
+save('toe-lift', 'Toe lifts: back on the wall, heels a foot out, toes lifted toward the shins', [floor(),
+     f'<line class="wall" x1="{hip[0]-7:.1f}" y1="16" x2="{hip[0]-7:.1f}" y2="{FLOOR}"/>', *F.svg(),
+     hl(mid(k, up), 16, 6, 80), arrow((128, 156), (124, 134), -0.4), 
+     label(14, 150, 'heels a', 'foot out'), label(140, 104, 'toes up,', 'slow down'), label(236, 26, 'back on the wall,', 'the shins do', 'the work', anchor='end')])
+
+F, K = standing((116, 86), 3, dict(ankle=(126, SHOE_ANKLE), toe=-34), dict(ankle=(112, SHOE_ANKLE), toe=-34),
+                (((164, 80), (0, 1)), ((158, 84), (0, 1))))
+save('heel-stand', 'Heel stand: balance on both heels with the toes off the floor, arms forward', [floor(), *F.svg(),
+     hl(mid(K['knee'], (126, SHOE_ANKLE)), 16, 6, 80), hl((124, FLOOR - 2), 10, 5),
+     vline(K['hip'][0] + 4, K['hip'][1], FLOOR), label(14, 26, 'only the heels', 'touch the floor'),
+     label(162, 108, 'toes up'), label(150, 26, 'arms forward,', 'hips over heels')])
+
+# back wheels, still, one hand on a wall
+F = Fig()
+toeA = -20; a1 = tilted_ankle(116, toeA, -6); a2 = tilted_ankle(104, toeA, -6)
+hip = (88, 98); sh = at(hip, -90 + 20, 52)
+F.leg(hip, a1, (1, 0), toeA, False, 'side'); F.leg(hip, a2, (1, 0), toeA, True, 'side')
+F.arm(sh, (170, 70), (0, 1)); F.arm(sh, (162, 80), (0, 1), True)
+F.body(hip, sh, head_from(hip, sh))
+save('manual-wall', 'Back-wheel balance at a wall: both skates on their back wheels, hand on the wall', [floor(),
+     f'<line class="wall" x1="176" y1="16" x2="176" y2="{FLOOR}"/>', *F.svg(),
+     hl((a1[0] - 8, FLOOR - 4), 10, 6), arrow((150, 140), (148, 118), -0.3),
+     label(14, 26, 'hips back,', 'chest over', 'the knees'), label(14, 140, 'back wheels', 'down, toes up')])
+
+def heeltoe(name, title, travel):
+    F = Fig()
+    tf, tb = -20, 20
+    front = tilted_ankle(144, tf, -6); back = tilted_ankle(84, tb, 21)
+    hip = (114, 88); sh = at(hip, -90 + 6, 52)
+    F.leg(hip, front, (1, 0), tf, False, 'side'); F.leg(hip, back, (1, 0), tb, True, 'side')
+    F.arm(sh, (162, 66), (0, 1)); F.arm(sh, (74, 70), (0, 1), True)
+    F.body(hip, sh, head_from(hip, sh))
+    extra = [arrow((20, 120), (56, 120)), label(20, 110, 'roll')] if travel else [label(14, 26, 'standing still')]
+    save(name, title, [floor(), *F.svg(), hl((front[0] - 8, FLOOR - 4), 10, 6), hl((back[0] + 20, FLOOR - 4), 10, 6),
+         vline(hip[0], hip[1], FLOOR), label(236, 26, 'hips between', 'the feet', anchor='end'),
+         label(236, 112, 'front: heel', anchor='end'), label(14, 92, 'back: toe'), *extra])
+
+heeltoe('heeltoe-still', 'Stationary heel-toe: front skate on its back wheel, back skate on its front wheel, standing still', False)
+heeltoe('heeltoe', 'Heel-toe roll: the same split stance while rolling', True)
+
+# front wheels: toe roll
+F = Fig()
+toeA = 22; a1 = tilted_ankle(124, toeA, 21); a2 = tilted_ankle(110, toeA, 21)
+hip = (112, 84); sh = at(hip, -90 + 18, 52)
+F.leg(hip, a1, (1, 0), toeA, False, 'side'); F.leg(hip, a2, (1, 0), toeA, True, 'side')
+F.arm(sh, (172, 76), (0, 1)); F.arm(sh, (90, 62), (0, 1), True)
+F.body(hip, sh, head_from(hip, sh))
+save('toe-roll', 'Toe roll: both skates on their front wheels, heels up, weight over the balls of the feet', [floor(), *F.svg(),
+     hl((a1[0] + 20, FLOOR - 4), 10, 6), arrow((20, 120), (56, 120)), label(20, 110, 'roll'),
+     label(14, 26, 'weight over the', 'balls of the feet'), label(200, 150, 'front wheels', anchor='middle'), label(236, 66, 'heels up', anchor='end')])
+
+# balance board
+F, K = standing((120, 90), 4, dict(ankle=(134, FLOOR - 22)), dict(ankle=(106, FLOOR - 22)),
+                (((76, 76), (0, 1)), ((166, 76), (0, 1))))
+save('bosu', 'Balance board: stand on the board, knees soft, keep it level', [floor(), *F.svg(),
+     '<path class="boot" d="M76 145L164 145L164 151L76 151Z"/>', '<path class="boot" d="M104 151Q120 176 136 151"/>',
+     f'<line class="acc dash" x1="60" y1="138" x2="180" y2="138"/>', label(236, 26, 'keep the board', 'level', anchor='end'),
+     label(14, 26, 'knees soft,', 'eyes ahead'), arrow((56, 156), (56, 130)), arrow((184, 130), (184, 156))])
+
 print('wrote', len([n for n in os.listdir(OUT) if n.endswith('.svg')]), 'illustrations')
