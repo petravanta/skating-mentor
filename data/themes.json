@@ -3,7 +3,7 @@
     "id": "manuals",
     "name": "Manuals",
     "description": "Rolling on the back wheels (or the fronts) with the other end up, from holding the balance at a wall to manualling a curb.",
-    "skills": ["heeltoe", "manual-wall", "manual-roll", "heelwheel", "toe-roll", "curb-manual", "toe-lifts", "balance", "bosu", "plank", "calf"]
+    "skills": ["heeltoe-still", "heeltoe", "manual-wall", "manual-roll", "heelwheel", "toe-roll", "curb-manual", "toe-lifts", "balance", "bosu", "plank", "calf"]
   },
   {
     "id": "turns",
