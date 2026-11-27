@@ -9,9 +9,10 @@ A browser-based skating coach. Tell it which skates you're on and where you are,
 It runs in any modern browser on phone or desktop, with no sign-up. To get started:
 
 1. Go to **Skates, spots & styles** and edit the example skates and spots to match yours, and pick the styles you care about.
-2. Open **Skill map → List & set levels** and mark the skills you already have, so suggestions start at your level.
+2. Open **Skill map → List & set levels** and mark the skills you already have, so suggestions start at your level. *I have all of these* marks a whole style at once, and **Already have it** on any session card skips a skill you know.
 3. On **Today**, choose your skates, spot, time and focus. Remove drills with ×, add your own from **Add an exercise** (or *Add to today's session* on any skill), and tick **Done** or tap how it went as you finish each one. Tap ☆ on any skill or exercise to make it a priority: starred ones get first pick of each session's time, the ones you did least recently first, and are listed under **Your priorities** on Today.
-4. To work toward something specific, open **Focus themes** on Today and pick up to three, such as *Manuals* or *Spins & turns*. About 60% of each session then goes to those themes, the skills that lead up to them and off-skate drills that help, and **Your focus** shows how far along each theme you are. The **Themes** chips on the skill map show one theme's progression, and the Progress log has a *By theme* summary.
+4. For sessions you repeat, like a 30 minute home workout or your usual rink warm-up, use **Routines** on Today: save today's session as one, or build one with exercises, steps of your own and minutes for each. A *Coach's picks* block in a routine is filled with whatever you're working on now, so the warm-up stays the same and the main block keeps moving. **Start** runs it in one tap.
+5. To work toward something specific, open **Focus themes** on Today and pick up to three, such as *Manuals* or *Spins & turns*. About 60% of each session then goes to those themes, the skills that lead up to them and off-skate drills that help, and **Your focus** shows how far along each theme you are. The **Themes** chips on the skill map show one theme's progression, and the Progress log has a *By theme* summary.
 
 Your progress stays in your browser. On a phone, use *Add to Home Screen* to open it like an app. Google Drive sync is optional; while the app's Google sign-in is in testing mode, it only works for Google accounts the owner has added as test users.
 
@@ -19,7 +20,7 @@ Your progress stays in your browser. On a phone, use *Add to Home Screen* to ope
 
 - **Styles:** Foundations, Cruising & fitness, Park, Street, Dance & artistic, Slalom & freestyle, and Off-skate training.
 - **Gear and spots:** skates (inline/quad, brake, wheels, grind-ready) and spots (surface plus features like curbs, ramps, cones) decide what's practical today.
-- **Tracking:** rate each attempt from "Not yet" to "On demand"; confidence builds over repeated sessions and fades slowly without practice. A skill unlocks once its prerequisites reach Developing.
+- **Tracking:** rate each attempt from "Not yet" to "On demand"; confidence builds over repeated sessions and fades slowly without practice. A skill opens up once its prerequisites reach Developing. Once you've been Confident at a skill (or landed it on demand), it stays counted as yours through breaks and bad days, and so does everything it builds on: sessions use it only as a warm-up. Prerequisites are a recommendation, not a gate, so you can try any skill anyway.
 - **Photos** of your skates and spots.
 
 ## Your data
@@ -43,7 +44,7 @@ It's a static page, `index.html` plus the skill list in `data/skills.json`, with
 
 ## Google Drive sync
 
-Under *Settings → Google Drive*, **Connect Google Drive** signs you in with Google and keeps a file called `Skating Mentor data.json` in your Drive. It saves a few seconds after each change. When you connect on another device, the app merges both: every logged session is kept, and the most recently edited skates, spots, styles, priorities and focus themes win. The app uses the `drive.file` permission, which means it can only see the file it creates, not the rest of your Drive.
+Under *Settings → Google Drive*, **Connect Google Drive** signs you in with Google and keeps a file called `Skating Mentor data.json` in your Drive. It saves a few seconds after each change. When you connect on another device, the app merges both: every logged session is kept, and the most recently edited skates, spots, styles, priorities, focus themes and routines win. The app uses the `drive.file` permission, which means it can only see the file it creates, not the rest of your Drive.
 
 Google sign-ins only last about an hour. The app keeps the sign-in across reloads and shares it with petravanta's other apps on the same browser, and when it's close to running out it renews it the next time you tap something (Google may flash a window that closes by itself). If it does lapse, for example after a long break, tap **Resume Drive sync** in the header. Everything still saves in the browser in the meantime.
 
