@@ -147,6 +147,21 @@ textarea{resize:vertical}
 @media (max-width:720px){.two{grid-template-columns:minmax(0,1fr)}}
 .banner{background:var(--accent-soft);border-radius:var(--r);padding:12px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .banner p{flex:1 1 260px}
+.finish{display:grid;gap:12px;border-color:var(--accent)}
+.finish .lab{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.flist{display:grid;gap:8px}
+.frow{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;justify-content:space-between;border-top:1px solid var(--line);padding-top:8px}
+.frow>span:first-child{font-weight:600}
+.rate.fr{margin:0}.rate button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.finish textarea{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px;font:inherit;color:var(--ink);resize:vertical;text-transform:none;letter-spacing:0}
+.closing{position:relative;overflow:hidden;display:grid;gap:12px;border-color:var(--accent);background:linear-gradient(160deg,var(--accent-soft),var(--surface) 70%)}
+.closing p{margin:0}
+.closing .sigil{position:absolute;right:14px;top:4px;font-size:54px;line-height:1;color:var(--accent);opacity:.35;animation:sigil 1.6s ease-out both}
+.closing .stat b{color:var(--accent)}
+.closing .up{color:var(--lv-conf);font-weight:600}.closing .down{color:var(--muted)}
+@keyframes sigil{from{transform:scale(.4) rotate(-90deg);opacity:0}to{transform:none;opacity:.35}}
+@media (prefers-reduced-motion:reduce){.closing .sigil{animation:none}}
+.entry.ses b{color:var(--accent)}
 /* map */
 .maptools{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .mapbox{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:auto;max-height:72vh;position:relative;
@@ -201,8 +216,7 @@ textarea{resize:vertical}
 .hist{display:flex;flex-direction:column;gap:4px;font-size:13px}
 .hist div{display:flex;justify-content:space-between;gap:8px}
 /* history */
-.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
-@media (max-width:620px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:12px}
 .stat b{display:block;font-family:var(--f-mono);font-size:24px;font-weight:500}
 .stat span{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 .day h3{margin-bottom:6px}
@@ -361,7 +375,7 @@ function defaultProfile(){return{
   routines:[], // saved sessions you repeat: {id,name,skate?,spot?,items:[{skill,mins}|{name,mins}|{auto:true,mins}]}
   examples:true
 };}
-let state={profile:defaultProfile(),logs:[],photos:{},deleted:[]};
+let state={profile:defaultProfile(),logs:[],photos:{},deleted:[],sessions:[]};
 let backend='local', dbRef=null, profRef=null, logsCol=null, photosCol=null;
 
 function lsGet(k){try{return JSON.parse(localStorage.getItem(k)||'null')}catch(e){return null}}
@@ -382,12 +396,25 @@ function cleanRoutine(r){
   if(typeof r.spot==='string') out.spot=r.spot; if(typeof r.skate==='string') out.skate=r.skate;
   return out;
 }
+// Finished sessions (the closing summary on Today): {id,ts,mins,planned,items:[{skill|name,mins,r}],skipped,feel?,note?,routine?,skate,spot}
+// Saves from before sessions existed simply have none; anything malformed is dropped.
+function cleanSessions(a){
+  return (Array.isArray(a)?a:[]).filter(x=>x&&typeof x==='object'&&typeof x.id==='string'&&typeof x.ts==='string').map(x=>({
+    id:x.id, ts:x.ts, mins:Math.max(0,Math.round(+x.mins)||0), planned:Math.max(0,Math.round(+x.planned)||0),
+    items:(Array.isArray(x.items)?x.items:[]).filter(i=>i&&typeof i==='object'&&(typeof i.skill==='string'||typeof i.name==='string')).map(i=>{
+      const o={mins:Math.max(0,Math.round(+i.mins)||0),r:[0,1,2,3,4,5].includes(i.r)?i.r:0}; if(typeof i.skill==='string') o.skill=i.skill; else o.name=String(i.name).slice(0,80); return o}),
+    skipped:Math.max(0,Math.round(+x.skipped)||0),
+    ...([1,2,3,4,5].includes(x.feel)?{feel:x.feel}:{}), ...(typeof x.note==='string'&&x.note?{note:x.note.slice(0,500)}:{}),
+    ...(typeof x.routine==='string'?{routine:x.routine.slice(0,60)}:{}), ...(typeof x.skate==='string'?{skate:x.skate}:{}), ...(typeof x.spot==='string'?{spot:x.spot}:{})
+  }));
+}
+function mergeSessions(a,b,del){const m=new Map(); [...cleanSessions(a),...cleanSessions(b)].forEach(x=>{if(!del.has(x.id))m.set(x.id,x)}); return [...m.values()]}
 function normProfile(p){
   const q=Object.assign(defaultProfile(),p||{});
   q.routines=(Array.isArray(q.routines)?q.routines:[]).map(cleanRoutine).filter(Boolean);
   return q;
 }
-const local=lsGet(LS_KEY); if(local&&local.profile){state={profile:normProfile(local.profile),logs:Array.isArray(local.logs)?local.logs:[],photos:local.photos||{},deleted:local.deleted||[]}}
+const local=lsGet(LS_KEY); if(local&&local.profile){state={profile:normProfile(local.profile),logs:Array.isArray(local.logs)?local.logs:[],photos:local.photos||{},deleted:local.deleted||[],sessions:cleanSessions(local.sessions)}}
 
 function setSaveState(t){document.getElementById('saveState').textContent=t}
 let profTimer=null;
@@ -549,7 +576,7 @@ async function driveFind(){
 }
 async function driveRead(){const id=await driveFind(); return id?(await dfetch(`/drive/v3/files/${id}?alt=media`)).json():null}
 async function driveWrite(){
-  const body=JSON.stringify({app:'skating-mentor',saved:new Date().toISOString(),profile:state.profile,logs:state.logs,photos:state.photos,deleted:state.deleted});
+  const body=JSON.stringify({app:'skating-mentor',saved:new Date().toISOString(),profile:state.profile,logs:state.logs,photos:state.photos,deleted:state.deleted,sessions:state.sessions});
   const id=await driveFind();
   if(id){await dfetch(`/upload/drive/v3/files/${id}?uploadType=media`,{method:'PATCH',headers:{'Content-Type':'application/json'},body});return}
   const b='sm'+uid6(), meta=JSON.stringify({name:DRIVE_FILE,mimeType:'application/json',parents:[await driveHome()]});
@@ -562,15 +589,15 @@ function mergeRemote(r){
   if(!r||!r.profile) return false;
   const del=new Set([...(state.deleted||[]),...(r.deleted||[])]);
   const byId=new Map(); [...(r.logs||[]),...state.logs].forEach(l=>{if(l&&l.id&&!del.has(l.id))byId.set(l.id,l)});
-  const before=JSON.stringify([state.profile,state.logs.length]);
+  const before=JSON.stringify([state.profile,state.logs.length,(state.sessions||[]).length]);
   const newer=(r.profile.updatedAt||'')>(state.profile.updatedAt||'');
   if(newer) state.profile=normProfile(r.profile);
-  state.logs=[...byId.values()]; state.deleted=[...del];
+  state.logs=[...byId.values()]; state.deleted=[...del]; state.sessions=mergeSessions(r.sessions,state.sessions,del);
   state.photos=Object.assign({},r.photos||{},state.photos);
   const used=new Set([...state.profile.skates,...state.profile.spots].map(k=>k.photo).filter(Boolean));
   Object.keys(state.photos).forEach(k=>{if(!used.has(k))delete state.photos[k]});
   lsSet(LS_KEY,state);
-  return JSON.stringify([state.profile,state.logs.length])!==before;
+  return JSON.stringify([state.profile,state.logs.length,state.sessions.length])!==before;
 }
 function driveStatus(){
   if(!driveConfigured()||!Drive.on) return null;
@@ -1028,6 +1055,82 @@ function addToPlan(id){
   pl.items.splice(at<0?pl.items.length:at,0,item); savePlan();
 }
 
+/* ---------------- Finishing a session ---------------- */
+// Closing out: rate anything you ticked without rating, say how it felt, then the session goes into the log with a
+// short summary and Today starts fresh. `finishing` holds the review form, `closing` the summary card.
+let finishing=null, closing=null;
+const FEELS=[null,['🥀','Rough'],['🌫️','Meh'],['🌙','Steady'],['✨','Good'],['🦇','Flying']];
+const CLOSERS=['Session sealed.','Wheels down. You showed up.','That’s a wrap, night rider.','Logged in the book of skate.','Done. The pavement remembers.'];
+function dayStr(t){return new Date(t).toISOString().slice(0,10)}
+// Days in a row with a finished session or logged practice, counting back from today (or yesterday, so it survives until you skate)
+function streak(){
+  const days=new Set([...state.sessions.map(x=>x.ts.slice(0,10)),...state.logs.filter(l=>l.base==null).map(l=>l.ts.slice(0,10))]);
+  let t=Date.now(), n=0; if(!days.has(dayStr(t))) t-=DAY;
+  while(days.has(dayStr(t))){n++; t-=DAY}
+  return n;
+}
+function startFinish(){finishing={rates:{},feel:0,note:''}; closing=null; render(); const el=document.getElementById('finish'); if(el) el.scrollIntoView({block:'start',behavior:'smooth'})}
+async function finishSession(){
+  const pl=getPlan(), f=finishing||{rates:{},feel:0,note:''}, c=state.profile.ctx, rt=curRoutine();
+  const noteEl=document.getElementById('finishNote'); if(noteEl) f.note=noteEl.value.trim();
+  for(const [i,r] of Object.entries(f.rates)){const it=pl.items[+i]; if(it&&it.done&&!it.done.r&&BYID[it.id]){const log=await logRating(it.id,r,'',true); it.done={r,log:log.id}}}
+  const done=pl.items.filter(it=>it.done), skills=[...new Set(done.filter(it=>BYID[it.id]).map(it=>it.id))];
+  // confidence before this session: the same model without today's ratings from it
+  const mine=new Set(done.map(it=>it.done.log).filter(Boolean)), all=state.logs;
+  state.logs=all.filter(l=>!mine.has(l.id)); computeConf(); const before={}; skills.forEach(id=>before[id]=CONF[id]?{...CONF[id]}:null);
+  state.logs=all; computeConf();
+  const changes=skills.map(id=>{const b=before[id], a=CONF[id]; return {id,b:b?b.c:0,a:a?a.c:0,first:!b&&!!a,up:levelOf(a?a.c:0)>levelOf(b?b.c:0)}});
+  const ses={id:'ss'+uid6(),ts:new Date().toISOString(),mins:done.reduce((a,it)=>a+it.mins,0),planned:pl.items.reduce((a,it)=>a+it.mins,0),
+    items:done.map(it=>BYID[it.id]?{skill:it.id,mins:it.mins,r:it.done.r||0}:{name:it.cn||'Your own step',mins:it.mins,r:0}),
+    skipped:pl.items.length-done.length,skate:c.skate,spot:c.spot};
+  if(f.feel) ses.feel=f.feel; if(f.note) ses.note=f.note.slice(0,500); if(rt) ses.routine=rt.name;
+  state.sessions.push(ses); saveLocal();
+  closing={ses,changes,streak:streak(),line:CLOSERS[Math.floor(hash(ses.id)*CLOSERS.length)]};
+  // Today starts over: the routine ends and the coach plans a fresh session
+  finishing=null; activeRoutine=null;
+  const today=new Date().toISOString().slice(0,10); planCache=freshPlan(ctxKey(),today,today+'#'+uid6(),null);
+  render(); window.scrollTo(0,0);
+}
+function finishPanel(plan){
+  const done=plan.items.filter(it=>it.done), left=plan.items.filter(it=>!it.done), f=finishing;
+  const mins=done.reduce((a,it)=>a+it.mins,0);
+  const nm=it=>BYID[it.id]?BYID[it.id].n:it.cn||'Your own step';
+  const rows=done.map(it=>{const i=plan.items.indexOf(it), s=BYID[it.id];
+    if(!s||it.done.r) return `<div class="frow"><span>${esc(nm(it))}</span><span class="muted small">${it.done.r?RATINGS[it.done.r]:'done'}</span></div>`;
+    return `<div class="frow"><span>${esc(s.n)}</span><span class="rate fr">${[1,2,3,4,5].map(r=>`<button data-frate="${r}" data-item="${i}" aria-pressed="${f.rates[i]===r}" title="${RATING_HELP[r]}">${RATINGS[r]}</button>`).join('')}</span></div>`}).join('');
+  return `<section class="panel finish" id="finish">
+    <h3>Close out the session</h3>
+    <p class="muted small">${mins} min, ${done.length} of ${plan.items.length} done${left.length?`. Skipped: ${esc(left.map(nm).join(', '))}. That’s fine, they’ll come round again.`:'. Every last one.'}</p>
+    ${done.length?`<div class="flist">${rows}</div>${done.some(it=>BYID[it.id]&&!it.done.r)?'<p class="muted small">Rating the ones you ticked is optional, and moves their confidence.</p>':''}`:''}
+    <div class="lab small">How did it feel?</div>
+    <div class="row feels">${FEELS.slice(1).map(([e,l],k)=>`<button class="chip" data-feel="${k+1}" aria-pressed="${f.feel===k+1}"><span aria-hidden="true">${e}</span> ${l}</button>`).join('')}</div>
+    <label class="field" for="finishNote">Note for future you<textarea id="finishNote" rows="2" maxlength="500" placeholder="What clicked, what hurt, what to try next time">${esc(f.note)}</textarea></label>
+    <div class="row"><button class="btn primary" data-act="finishSave">Finish session ✦</button><button class="btn ghost" data-act="finishCancel">Keep skating</button></div>
+  </section>`;
+}
+function closingCard(){
+  const {ses,changes,streak:st,line}=closing;
+  const ups=changes.filter(x=>x.up&&x.a>0&&!x.first), first=changes.filter(x=>x.first), moved=changes.filter(x=>!x.up&&!x.first&&x.a!==x.b);
+  const feel=ses.feel?FEELS[ses.feel]:null;
+  return `<section class="panel closing" id="closing" role="status">
+    <div class="sigil" aria-hidden="true">✦</div>
+    <h2>${esc(line)}</h2>
+    <div class="stats">
+      <div class="stat"><b>${ses.mins}</b><span>Minutes</span></div>
+      <div class="stat"><b>${ses.items.length}</b><span>Done${ses.skipped?` · ${ses.skipped} skipped`:''}</span></div>
+      <div class="stat"><b>${changes.length}</b><span>Skills worked</span></div>
+      <div class="stat"><b>${st}</b><span>Day streak</span></div>
+    </div>
+    ${ups.length?`<p><b>Levelled up:</b> ${ups.map(x=>`${esc(BYID[x.id].n)} <span class="pill l${levelOf(x.a)}">${LEVELS[levelOf(x.a)].n}</span>`).join(' ')}</p>`:''}
+    ${first.length?`<p><b>First tries:</b> ${first.map(x=>`${esc(BYID[x.id].n)} ${pill(x.id)}`).join(' ')} The hardest part is starting.</p>`:''}
+    ${moved.length?`<p class="small"><b>Confidence:</b> ${moved.map(x=>`${esc(BYID[x.id].n)} <span class="mono ${x.a>x.b?'up':'down'}">${x.a>x.b?'+':''}${x.a-x.b}%</span>`).join(' · ')}</p>`:''}
+    ${!ups.length&&!first.length&&!moved.length&&changes.length?'<p class="muted small">Ticking without rating keeps confidence where it was. Rate a drill next time to watch it move.</p>':''}
+    ${feel||ses.note?`<p class="muted">${feel?`${feel[0]} Felt ${feel[1].toLowerCase()}`:''}${feel&&ses.note?' · ':''}${ses.note?'“'+esc(ses.note)+'”':''}</p>`:''}
+    <p class="muted small">${st>1?`${st} days running. Keep the candle lit.`:'Rest counts too. Today’s plan is fresh for whenever you’re back.'}</p>
+    <div class="row"><button class="btn primary" data-act="closingDone">Onward</button><button class="btn" data-tab="log">See it in your log</button></div>
+  </section>`;
+}
+
 /* ---------------- Rendering ---------------- */
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let tab='today', mapView='map', mapStyle='mine', zoom=1, selected=null, pendingDelete=null, themeOpen=false;
@@ -1083,7 +1186,11 @@ function viewToday(){
       ${!inPlan.has(id)&&!b?`<button class="btn sm" data-addplan="${id}">Add</button>`:pill(id)}</div>`}).join('');
   const nearly=SKILLS.filter(s=>(styleOn(s)||inFocus(s))&&s.st!=='O'&&!unlocked(s)&&conf(s.id)===0&&missing(s).length===1)
     .map(s=>({s,r:missing(s)[0],th:inFocus(s)})).filter(x=>conf(x.r)>0).sort((a,b)=>b.th-a.th).slice(0,5);
+  const allDone=plan.items.length&&nDone===plan.items.length;
+  const finishBar=finishing||!nDone?'':allDone?`<div class="banner finishbar"><p><b>All done.</b> Close it out to log the session and see how it went.</p><button class="btn primary" data-act="finishOpen">Finish session ✦</button></div>`:
+    `<div class="row finishbar" style="justify-content:space-between"><span class="muted small">${nDone} of ${plan.items.length} done. Calling it early is allowed.</span><button class="btn sm" data-act="finishOpen">Finish session</button></div>`;
   return `<div class="stack">
+    ${closing?closingCard():''}
     ${p.examples&&!anyLogs?`<div class="banner"><p><b>Start by setting yourself up.</b> The skates and spots below are examples. Edit them to match yours, then mark the skills you already have so recommendations start at your level.</p>
       <div class="row"><button class="btn primary" data-goto="map" data-list="1">Mark skills I have</button><button class="btn" data-goto="gear">Edit skates &amp; spots</button></div></div>`:''}
     <section class="panel">
@@ -1107,7 +1214,8 @@ function viewToday(){
       <h2>${rt?esc(rt.name):plan.offOnly?'Off-skate session':'Today’s session'} <span class="muted mono" style="font-size:14px">${total} min${nDone?` · ${nDone} of ${plan.items.length} done`:''}</span></h2>
       ${!rt||rt.items.some(x=>x.auto)?`<button class="btn sm" data-act="shuffle">Suggest different skills</button>`:''}
     </div>
-    <div class="plan">${items||`<div class="panel empty">Nothing fits this combination. Try another spot, or turn on more styles under Skates, spots &amp; styles.</div>`}</div>
+    ${finishing&&plan.items.some(it=>it.done)?finishPanel(plan):`<div class="plan">${items||`<div class="panel empty">Nothing fits this combination. Try another spot, or turn on more styles under Skates, spots &amp; styles.</div>`}</div>
+    ${finishBar}`}
     ${items&&!rt&&total<+c.minutes-5&&pickList.length?`<p class="muted small">That’s all that fits your level here for now. Add more below, or repeat the ones above.</p>`:''}
     ${pickList.length?`<label class="field addpick" for="addPick">Add an exercise<select id="addPick" data-addpick="1"><option value="">Choose a skill or exercise…</option>${pickGroups}</select></label>`:''}
     <section class="panel" id="rtPanel"><div class="row" style="justify-content:space-between"><h3>Routines</h3>
@@ -1289,7 +1397,14 @@ function viewLog(){
   const days=new Set(practice.map(l=>l.ts.slice(0,10)));
   const confident=SKILLS.filter(s=>conf(s.id)>=70).length;
   const inprog=SKILLS.filter(s=>{const c=conf(s.id);return c>0&&c<70}).length;
-  const groups={}; [...state.logs].sort((a,b)=>a.ts<b.ts?1:-1).forEach(l=>{const d=l.ts.slice(0,10);(groups[d]=groups[d]||[]).push(l)});
+  const groups={}; [...state.logs,...state.sessions.map(x=>({...x,ses:true}))].sort((a,b)=>a.ts<b.ts?1:-1).forEach(l=>{const d=l.ts.slice(0,10);(groups[d]=groups[d]||[]).push(l)});
+  const delBtn=(id,lab)=>pendingDelete===id?`<button class="btn sm danger" data-del="${id}">Delete</button> <button class="btn sm ghost" data-delcancel="1">Keep</button>`:`<button class="btn sm ghost" data-delask="${id}" aria-label="${lab}">Remove</button>`;
+  const sesRow=x=>{const where=[name(state.profile.skates,x.skate),name(state.profile.spots,x.spot)].filter(Boolean).join(' at '), fe=x.feel?FEELS[x.feel]:null;
+    const what=x.items.map(i=>i.skill?(BYID[i.skill]||{}).n:i.name).filter(Boolean);
+    return `<div class="entry ses"><div><b>✦ ${x.routine?esc(x.routine):'Session'} finished</b>
+      <div class="meta">${x.mins} min · ${x.items.length} done${x.skipped?`, ${x.skipped} skipped`:''}${fe?` · ${fe[0]} ${fe[1]}`:''}${where?' · '+esc(where):''}</div>
+      ${what.length?`<div class="meta">${esc(what.join(', '))}</div>`:''}</div>
+      <div>${delBtn(x.id,'Remove session')}</div>${x.note?`<div class="note">${esc(x.note)}</div>`:''}</div>`};
   const name=(arr,id)=>{const x=arr.find(k=>k.id===id);return x?x.name:null};
   const styleRows=Object.entries(STYLES).filter(([k])=>k==='F'||state.profile.styles.includes(k)).map(([k,v])=>{
     const list=SKILLS.filter(s=>s.st===k), n=list.length;
@@ -1299,6 +1414,7 @@ function viewLog(){
   return `<div class="stack">
     <h2>Progress log</h2>
     <div class="stats">
+      <div class="panel stat"><b>${state.sessions.length}</b><span>Sessions finished</span></div>
       <div class="panel stat"><b>${days.size}</b><span>Practice days</span></div>
       <div class="panel stat"><b>${practice.length}</b><span>Skills logged</span></div>
       <div class="panel stat"><b>${confident}</b><span>Confident or solid</span></div>
@@ -1309,11 +1425,11 @@ function viewLog(){
       ${themesOn().length?'':'<p class="muted small" style="margin-top:6px">Choose focus themes on Today to have sessions lean toward them.</p>'}</section>`:''}
     <section class="panel stack">
       ${Object.keys(groups).length?Object.entries(groups).map(([d,ls])=>`<div class="day"><h3>${new Date(d+'T12:00').toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric',year:'numeric'})}</h3>
-        ${ls.map(l=>{const s=BYID[l.skill]; if(!s) return '';
+        ${ls.map(l=>{if(l.ses) return sesRow(l); const s=BYID[l.skill]; if(!s) return '';
           const where=[name(state.profile.skates,l.skate),name(state.profile.spots,l.spot)].filter(Boolean).join(' at ');
           return `<div class="entry"><div><button class="nm" style="background:none;border:0;padding:0;font-weight:700;color:var(--ink)" data-open="${s.id}">${esc(s.n)}</button>
             <div class="meta">${l.base!=null?'Starting level: '+esc(LEVELS[BASELINE_CONF.indexOf(l.base)]?.n||''):esc(RATINGS[l.r])}${where?' · '+esc(where):''}</div></div>
-            <div>${pendingDelete===l.id?`<button class="btn sm danger" data-del="${l.id}">Delete</button> <button class="btn sm ghost" data-delcancel="1">Keep</button>`:`<button class="btn sm ghost" data-delask="${l.id}" aria-label="Remove entry">Remove</button>`}</div>
+            <div>${delBtn(l.id,'Remove entry')}</div>
             ${l.note?`<div class="note">${esc(l.note)}</div>`:''}</div>`}).join('')}</div>`).join(''):
         `<div class="empty">No practice logged yet. Rate a skill from today’s session, or open any skill on the map and log it.</div>`}
     </section>
@@ -1382,13 +1498,13 @@ document.addEventListener('drop',e=>{const z=dropZone(e);if(!z)return;e.preventD
   const f=[...(e.dataTransfer.files||[])][0]; if(f) setPhoto(z.dataset.drop,z.dataset.owner,f); else toast('Drop an image file from your computer.')});
 function toast(t){const h=document.getElementById('toastHost');h.innerHTML=`<div class="toast" role="status">${esc(t)}</div>`;clearTimeout(toast.t);toast.t=setTimeout(()=>h.innerHTML='',2600)}
 function touchProfile(){state.profile.examples=false;saveProfile()}
-async function logRating(skill,r,note){
+async function logRating(skill,r,note,quiet){
   const c=state.profile.ctx;
   const log={id:uid6(),ts:new Date().toISOString(),skill,r,skate:c.skate,spot:c.spot}; if(note) log.note=note;
   const before=levelOf(conf(skill)), wasLocked=(CHILDREN[skill]||[]).filter(k=>!unlocked(BYID[k]));
   await saveLog(log); computeConf();
   const after=levelOf(conf(skill)), opened=wasLocked.filter(k=>unlocked(BYID[k]));
-  toast(opened.length?`Unlocked: ${opened.map(k=>BYID[k].n).join(', ')}`:after>before?`${BYID[skill].n} is now ${LEVELS[after].n}`:`Logged ${BYID[skill].n}`);
+  if(!quiet) toast(opened.length?`Unlocked: ${opened.map(k=>BYID[k].n).join(', ')}`:after>before?`${BYID[skill].n} is now ${LEVELS[after].n}`:`Logged ${BYID[skill].n}`);
   return log;
 }
 async function setBaseline(skill,lv){
@@ -1409,7 +1525,7 @@ GoogleToken.onChange(()=>{if(driveConfigured()&&Drive.on&&driveLive()) driveSync
 document.addEventListener('click',async e=>{
   const t=e.target.closest('button,[data-open],[data-close]'); if(!t) return;
   const d=t.dataset;
-  if(d.tab){tab=d.tab;selected=null;try{sessionStorage.setItem('sm.tab',tab)}catch(_){};render();window.scrollTo(0,0);return}
+  if(d.tab){tab=d.tab;selected=null;closing=null;try{sessionStorage.setItem('sm.tab',tab)}catch(_){};render();window.scrollTo(0,0);return}
   if(d.goto){tab=d.goto;if(d.list)mapView='list';render();return}
   if(d.close){selected=null;render();return}
   if(d.fav){toggleFav(d.fav);return}
@@ -1426,6 +1542,12 @@ document.addEventListener('click',async e=>{
   if(d.addplan){addToPlan(d.addplan); selected=null; tab='today'; render(); toast(BYID[d.addplan].n+' added to today'); return}
   if(d.logskill){const note=(document.getElementById('logNote')||{}).value||''; await logRating(d.logskill,+d.r,note.trim()); render(); return}
   if(d.act==='shuffle'){reshuffle();return}
+  if(d.act==='finishOpen'){startFinish();return}
+  if(d.act==='finishCancel'){finishing=null;render();return}
+  if(d.act==='finishSave'){t.disabled=true;await finishSession();return}
+  if(d.act==='closingDone'){closing=null;render();window.scrollTo(0,0);return}
+  if(d.frate&&finishing){const i=+d.item, r=+d.frate; finishing.rates[i]===r?delete finishing.rates[i]:finishing.rates[i]=r; render(); return}
+  if(d.feel&&finishing){const v=+d.feel; finishing.feel=finishing.feel===v?0:v; render(); return}
   if(d.haveit){const i=+d.haveit, it=planCache.items[i]; if(!it) return; planCache.items.splice(i,1);
     await markHave([it.id]); toast(`${BYID[it.id].n} counts as Confident now, and so does everything it builds on.`); return}
   if(d.haveskill){await markHave([d.haveskill]); toast(`${BYID[d.haveskill].n} counts as Confident now, and so does everything it builds on.`); return}
@@ -1461,10 +1583,10 @@ document.addEventListener('click',async e=>{
   if(d.rmspot){const p=state.profile;if(p.spots.length<=1){toast('Keep at least one spot.');return}dropPhoto((p.spots.find(k=>k.id===d.rmspot)||{}).photo);p.spots=p.spots.filter(k=>k.id!==d.rmspot);if(p.ctx.spot===d.rmspot)p.ctx.spot=p.spots[0].id;touchProfile();render();return}
   if(d.delask){pendingDelete=d.delask;render();return}
   if(d.delcancel){pendingDelete=null;render();return}
-  if(d.del){pendingDelete=null;await removeLog(d.del);toast('Entry removed');render();return}
+  if(d.del){pendingDelete=null; if(state.sessions.some(x=>x.id===d.del)){state.sessions=state.sessions.filter(x=>x.id!==d.del);state.deleted.push(d.del);saveLocal();toast('Session removed. Its ratings stay in the log.')}else{await removeLog(d.del);toast('Entry removed')} render();return}
   if(d.act==='resetAsk'){pendingDelete='ALL';render();return}
   if(d.act==='resetYes'){
-    const ids=state.logs.map(l=>l.id); const phIds=Object.keys(state.photos); state={profile:defaultProfile(),logs:[],photos:{},deleted:state.deleted.concat(ids)}; pendingDelete=null; planCache=null; saveLocal(); saveProfile();
+    const ids=state.logs.map(l=>l.id); const phIds=Object.keys(state.photos); state={profile:defaultProfile(),logs:[],photos:{},deleted:state.deleted.concat(ids,(state.sessions||[]).map(x=>x.id)),sessions:[]}; pendingDelete=null; planCache=null; saveLocal(); saveProfile();
     if(backend==='cloud'){for(const id of ids){try{await logsCol.doc(id).delete()}catch(_){}}for(const id of phIds){try{await photosCol.doc(id).delete()}catch(_){}}}
     toast('Everything erased');render();return}
   if(d.act==='driveConnect'||d.act==='driveSync'){driveSync(true);return}
@@ -1503,12 +1625,15 @@ document.addEventListener('change',async e=>{
       for(const [k,v] of Object.entries(j.photos||{})){if(typeof v==='string'&&v.startsWith('data:image/'))await savePhoto(k,v)}
       saveProfile();
       for(const l of add) await saveLog(l);
-      planCache=null; toast(`Imported ${add.length} entries`); render();
+      const nS=state.sessions.length; state.sessions=mergeSessions(state.sessions,j.sessions,new Set(state.deleted)); saveLocal();
+      const addS=state.sessions.length-nS;
+      planCache=null; toast(`Imported ${add.length} entries${addS?` and ${addS} session${addS===1?'':'s'}`:''}`); render();
     }catch(_){toast('That file isn’t a Skating Mentor backup.')}
   }
 });
 document.addEventListener('input',e=>{
   const d=e.target.dataset;
+  if(e.target.id==='finishNote'&&finishing){finishing.note=e.target.value;return}
   if(d.skname){state.profile.skates.find(x=>x.id===d.skname).name=e.target.value;touchProfile()}
   if(d.spname){state.profile.spots.find(x=>x.id===d.spname).name=e.target.value;touchProfile()}
   const er=editingRoutine&&routineBy(editingRoutine);
